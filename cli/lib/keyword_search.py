@@ -4,8 +4,13 @@ def search_command(query: str, limit: int = DEFAULT_SEARCH_LIMIT) -> list[dict]:
     movies = load_movies()
     results = []
     for movie in movies:
-        if str(movie["title"]).__contains__(query):
-            results.append(movie) 
+        preprocessed_query = preprocess_text(query)[0]
+        preprocessed_title = preprocess_text(movie["title"])[0]
+        if preprocessed_query in preprocessed_title:
+            results.append(movie)
         if len(results) == limit:
             break
     return results
+
+def preprocess_text(text: str) -> list[str]:
+    return [text.lower()]
