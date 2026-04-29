@@ -5,8 +5,20 @@ DEFAULT_SEARCH_LIMIT = 5
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 DATA_PATH = os.path.join(PROJECT_ROOT, "data", "movies.json")
+STOPWORDS_PATH = os.path.join(PROJECT_ROOT, "data", "stopwords.txt")
+
+STOP_WORDS:list[str] = []
 
 def load_movies() -> list[dict]:
     with open(DATA_PATH, "r") as f:
         data = json.load(f)
     return data["movies"]
+
+def load_stopwords() -> list[str]:
+
+    global STOP_WORDS
+
+    if STOP_WORDS is None or len(STOP_WORDS) == 0:
+        with open(STOPWORDS_PATH, "r") as f:
+            STOP_WORDS = f.read().splitlines()
+    return STOP_WORDS

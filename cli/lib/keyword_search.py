@@ -1,4 +1,4 @@
-from .search_utils import DEFAULT_SEARCH_LIMIT, load_movies
+from .search_utils import DEFAULT_SEARCH_LIMIT, load_movies, load_stopwords
 import string
 
 def search_command(query: str, limit: int = DEFAULT_SEARCH_LIMIT) -> dict[int, dict]:
@@ -21,16 +21,20 @@ def search_command(query: str, limit: int = DEFAULT_SEARCH_LIMIT) -> dict[int, d
             results[movie['id']] = movie
             if len(results) == limit:
                 break  # Early exit to avoid unnecessary checks
-    
+
     return results
 
 def preprocess_text(text: str) -> list[str]:
     """Preprocess text: remove punctuation, lowercase, tokenize."""
     processed_text = remove_punctuation(text).lower()
-    return tokenize_text(processed_text)
+    return remove_stopwords(tokenize_text(processed_text))
 
 def remove_punctuation(text: str) -> str:
     return text.translate(str.maketrans('', '', string.punctuation))
 
 def tokenize_text(text: str) -> list[str]:
     return text.split()
+
+def remove_stopwords(words: list[str]) -> list[str]:
+    stopwords = set(load_stopwords())  # Convert to set for fast lookup; cache if possible
+    return [word for word in words if word not in stopwords]
