@@ -16,8 +16,8 @@ def main() -> None:
         case "search":
             print(f"Searching for: {args.query}")
             results = search_command(args.query, args.limit)
-            for i, id in enumerate(results, 1):
-                print(f'{i}. {results[id]["title"]}')
+            for i, res in enumerate(results, 1):
+                print(f'{i}. {res["title"]}')
         case _:
             parser.print_help()
 
