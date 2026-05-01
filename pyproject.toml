@@ -4,4 +4,6 @@ version = "0.1.0"
 description = "A small RAG search engine project for exploring search, retrieval, and LLM-powered results."
 readme = "README.md"
 requires-python = ">=3.10"
-dependencies = []
+dependencies = [
+    "nltk==3.9.1",
+]
