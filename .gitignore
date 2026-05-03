@@ -11,5 +11,6 @@ wheels/
 
 # data files
 /data/
+cache/
 
 launch.json

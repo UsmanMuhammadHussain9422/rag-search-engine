@@ -1,6 +1,11 @@
-from .search_utils import DEFAULT_SEARCH_LIMIT, load_movies, load_stopwords
+from .search_utils import DEFAULT_SEARCH_LIMIT, CACHE_DIR, load_movies, load_stopwords
 from nltk.stem import PorterStemmer
 import string
+import pickle
+import os
+import traceback
+
+_verbose = False
 
 def search_command(query: str, limit: int = DEFAULT_SEARCH_LIMIT) -> list[dict]:
     """
@@ -24,6 +29,18 @@ def search_command(query: str, limit: int = DEFAULT_SEARCH_LIMIT) -> list[dict]:
                 break  # Early exit to avoid unnecessary checks
 
     return results
+
+def build_command(verbose=False):
+    
+    global _verbose
+    _verbose = verbose
+
+    midx = InvertedIndex()
+    midx.build()
+    midx.save()
+
+    docs = midx.get_documents("merida")
+    print(f"First document for token 'merida' = {docs[0]}")
 
 def has_matching_token(query_tokens, title_tokens):
     return any(q_token in t_token for q_token in query_tokens for t_token in title_tokens)
@@ -51,3 +68,54 @@ def stemmer(texts: list[str]) -> set[str]:
     stemmer = PorterStemmer()
     unique_texts = set(texts)
     return set(stemmer.stem(text) for text in unique_texts)
+
+class InvertedIndex:
+    def __init__(self) -> None:
+
+        self.index_path = os.path.join(CACHE_DIR, "index.pkl")
+        self.docmap_path = os.path.join(CACHE_DIR, "docmap.pkl")
+        self.index: dict[str, set] = {}
+        self.docmap: dict[int, dict] = {}
+
+    def __add_documents(self, doc_id, text):
+        text_tokenized = preprocess_text(text)
+        for token in text_tokenized:
+            if token not in self.index:
+                self.index[token] = set()    
+            self.index[token].add(doc_id)
+
+    def get_documents(self, term: str) -> list[str]:
+        return list(sorted(self.index[term.lower()]))
+    
+    def build(self) -> bool:
+        try:
+            if _verbose: print("Processing movies index Data...")
+            movies = load_movies()
+
+            for movie in movies:
+                self.docmap[movie["id"]] = movie
+                self.__add_documents(movie["id"], f"{movie['title']} {movie['description']}")
+            
+            if _verbose: print("Movies Index Data processesed successfully!")
+            return True
+        except Exception as ex:
+            print(f"Error: Movies Index built failed.\nInternal Error: {ex}\n{traceback.format_exc()}")
+            return False
+        
+    def save(self) -> bool:
+        if _verbose: print("Saving Movies Indexes to HardDisk...")
+
+        try:
+            os.makedirs(CACHE_DIR, exist_ok=True)
+
+            with open(self.index_path, 'wb') as file:
+                pickle.dump(self.index, file)
+            
+            with open(self.docmap_path, 'wb') as file:
+                pickle.dump(self.docmap, file)
+
+            if _verbose: print("Movies Index-Data saved successfully in caching folder.")
+            return True
+        except Exception as ex:
+            print(f"Error: Movies Index Data Save failed.\nInternal Error: {ex}\n{traceback.format_exc()}")
+            return False
