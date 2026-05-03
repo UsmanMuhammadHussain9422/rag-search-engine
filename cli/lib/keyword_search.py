@@ -6,8 +6,8 @@ import os
 import traceback
 
 _verbose = False
-
-def search_command(query: str, limit: int = DEFAULT_SEARCH_LIMIT) -> list[dict]:
+@DeprecationWarning
+def search_command_old(query: str, limit: int = DEFAULT_SEARCH_LIMIT) -> list[dict]:
     """
     Search for movies whose titles contain any token from the query (case-insensitive, ignoring punctuation).
     Returns up to 'limit' matching movies as a dict of {id: movie}.
@@ -30,6 +30,17 @@ def search_command(query: str, limit: int = DEFAULT_SEARCH_LIMIT) -> list[dict]:
 
     return results
 
+def search_command(query: str, limit: int = DEFAULT_SEARCH_LIMIT) -> list[dict]:
+    movies_idx = InvertedIndex()
+    if movies_idx.load() == False:
+        return []
+    
+    res_doc_ids = set()
+    for q_token in preprocess_text(query):
+        res_doc_ids.update(movies_idx.get_documents(q_token))
+        if len(res_doc_ids) >= limit: break
+    return [movies_idx.docmap[id] for id in sorted(res_doc_ids)[:limit]]
+
 def build_command(verbose=False):
     
     global _verbose
@@ -38,9 +49,6 @@ def build_command(verbose=False):
     midx = InvertedIndex()
     midx.build()
     midx.save()
-
-    docs = midx.get_documents("merida")
-    smart_print(f"First document for token 'merida' = {docs[0]}")
 
 def has_matching_token(query_tokens, title_tokens):
     return any(q_token in t_token for q_token in query_tokens for t_token in title_tokens)
@@ -84,7 +92,8 @@ class InvertedIndex:
                 self.index[token] = set()    
             self.index[token].add(doc_id)
 
-    def get_documents(self, term: str) -> list[str]:
+    def get_documents(self, term: str) -> list[int]:
+        if term.lower() not in self.index: return []
         return list(sorted(self.index[term.lower()]))
     
     def build(self) -> bool:
@@ -119,4 +128,22 @@ class InvertedIndex:
             return True
         except Exception as ex:
             smart_print(f"Error: Movies Index Data Save failed.\nInternal Error: {ex}\n{traceback.format_exc()}")
+            return False
+    
+    def load(self) -> bool:
+        smart_print("Loading Movies Indexes from HardDisk...", _verbose)
+
+        try:
+            if not os.path.exists(self.index_path) : raise Exception(f"Could not load 'index.pkl' file.\nThe file path: {self.index_path} does not exist.")
+            with open(self.index_path, "rb") as file:
+                self.index = pickle.load(file=file)
+        
+            if not os.path.exists(self.index_path) : raise Exception(f"Could not load 'docmap.pkl' file.\nThe file path: {self.docmap_path} does not exist.")
+            with open(self.docmap_path, "rb") as file:
+                self.docmap = pickle.load(file=file)
+
+            smart_print("Movies-Indexes loaded successfully!", _verbose)
+            return True
+        except Exception as ex:
+            smart_print(f"Error: Movies Index Data Loading failed.\nInternal Error: {ex}\n{traceback.format_exc()}")
             return False
