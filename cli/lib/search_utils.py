@@ -11,6 +11,10 @@ CACHE_DIR = os.path.join(PROJECT_ROOT, "cache")
 
 STOP_WORDS:list[str] = []
 
+def smart_print(message, should_print=True):
+    if should_print: 
+        print(message)
+
 def load_movies() -> list[dict]:
     with open(DATA_PATH, "r") as f:
         data = json.load(f)

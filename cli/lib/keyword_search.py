@@ -1,4 +1,4 @@
-from .search_utils import DEFAULT_SEARCH_LIMIT, CACHE_DIR, load_movies, load_stopwords
+from .search_utils import DEFAULT_SEARCH_LIMIT, CACHE_DIR, smart_print, load_movies, load_stopwords
 from nltk.stem import PorterStemmer
 import string
 import pickle
@@ -40,7 +40,7 @@ def build_command(verbose=False):
     midx.save()
 
     docs = midx.get_documents("merida")
-    print(f"First document for token 'merida' = {docs[0]}")
+    smart_print(f"First document for token 'merida' = {docs[0]}")
 
 def has_matching_token(query_tokens, title_tokens):
     return any(q_token in t_token for q_token in query_tokens for t_token in title_tokens)
@@ -89,21 +89,21 @@ class InvertedIndex:
     
     def build(self) -> bool:
         try:
-            if _verbose: print("Processing movies index Data...")
+            smart_print("Processing movies index Data...", _verbose)
             movies = load_movies()
 
             for movie in movies:
                 self.docmap[movie["id"]] = movie
                 self.__add_documents(movie["id"], f"{movie['title']} {movie['description']}")
             
-            if _verbose: print("Movies Index Data processesed successfully!")
+            smart_print("Movies Index Data processesed successfully!", _verbose)
             return True
         except Exception as ex:
-            print(f"Error: Movies Index built failed.\nInternal Error: {ex}\n{traceback.format_exc()}")
+            smart_print(f"Error: Movies Index built failed.\nInternal Error: {ex}\n{traceback.format_exc()}")
             return False
         
     def save(self) -> bool:
-        if _verbose: print("Saving Movies Indexes to HardDisk...")
+        smart_print("Saving Movies Indexes to HardDisk...", _verbose)
 
         try:
             os.makedirs(CACHE_DIR, exist_ok=True)
@@ -114,8 +114,9 @@ class InvertedIndex:
             with open(self.docmap_path, 'wb') as file:
                 pickle.dump(self.docmap, file)
 
-            if _verbose: print("Movies Index-Data saved successfully in caching folder.")
+            smart_print("Movies Index-Data saved successfully in caching folder.", _verbose)
+            
             return True
         except Exception as ex:
-            print(f"Error: Movies Index Data Save failed.\nInternal Error: {ex}\n{traceback.format_exc()}")
+            smart_print(f"Error: Movies Index Data Save failed.\nInternal Error: {ex}\n{traceback.format_exc()}")
             return False
