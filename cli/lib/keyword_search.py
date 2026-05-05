@@ -63,7 +63,7 @@ def build_command(verbose=False):
 def has_matching_token(query_tokens, title_tokens):
     return any(q_token in t_token for q_token in query_tokens for t_token in title_tokens)
 
-def preprocess_text(text: str) -> set[str]:
+def preprocess_text(text: str) -> list[str]:
     """Preprocess text: remove punctuation, lowercase, tokenize."""
     processed_text = remove_punctuation(text).lower()
     return stemmer(
@@ -82,14 +82,13 @@ def remove_stopwords(words: list[str]) -> list[str]:
     stopwords = set(load_stopwords())  # Convert to set for fast lookup; cache if possible
     return [word for word in words if word not in stopwords]
 
-def stemmer(texts: list[str]) -> set[str]:
+def stemmer(texts: list[str]) -> list[str]:
     stemmer = PorterStemmer()
     unique_texts = set(texts)
-    return set(stemmer.stem(text) for text in unique_texts)
+    return [stemmer.stem(text) for text in unique_texts]
 
 class InvertedIndex:
     def __init__(self) -> None:
-
         self.index = defaultdict(set)
         self.docmap: dict[int, dict] = {}
         self.index_path = os.path.join(CACHE_DIR, "index.pkl")
@@ -97,7 +96,7 @@ class InvertedIndex:
 
     def __add_documents(self, doc_id, text):
         text_tokenized = preprocess_text(text)
-        for token in text_tokenized:
+        for token in set(text_tokenized):
             self.index[token].add(doc_id)
 
     def get_documents(self, term: str) -> list[int]:
