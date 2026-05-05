@@ -35,11 +35,20 @@ def search_command(query: str, limit: int = DEFAULT_SEARCH_LIMIT) -> list[dict]:
     if movies_idx.load() == False:
         return []
     
-    res_doc_ids = set()
-    for q_token in preprocess_text(query):
-        res_doc_ids.update(movies_idx.get_documents(q_token))
-        if len(res_doc_ids) >= limit: break
-    return [movies_idx.docmap[id] for id in sorted(res_doc_ids)[:limit]]
+    query_tokens = preprocess_text(query)
+    seen, results = set(), []
+    for query_token in query_tokens:
+        matching_doc_ids = movies_idx.get_documents(query_token)
+        for doc_id in matching_doc_ids:
+            if doc_id in seen:
+                continue
+            seen.add(doc_id)
+            doc = movies_idx.docmap[doc_id]
+            results.append(doc)
+            if len(results) >= limit:
+                return results
+
+    return results
 
 def build_command(verbose=False):
     
@@ -93,8 +102,8 @@ class InvertedIndex:
             self.index[token].add(doc_id)
 
     def get_documents(self, term: str) -> list[int]:
-        if term.lower() not in self.index: return []
-        return list(sorted(self.index[term.lower()]))
+        doc_ids = self.index.get(term, set())
+        return sorted(list(doc_ids))
     
     def build(self) -> bool:
         try:
