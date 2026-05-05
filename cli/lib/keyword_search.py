@@ -1,5 +1,6 @@
 from .search_utils import DEFAULT_SEARCH_LIMIT, CACHE_DIR, smart_print, load_movies, load_stopwords
 from nltk.stem import PorterStemmer
+from collections import defaultdict
 import string
 import pickle
 import os
@@ -89,16 +90,14 @@ def stemmer(texts: list[str]) -> set[str]:
 class InvertedIndex:
     def __init__(self) -> None:
 
+        self.index = defaultdict(set)
+        self.docmap: dict[int, dict] = {}
         self.index_path = os.path.join(CACHE_DIR, "index.pkl")
         self.docmap_path = os.path.join(CACHE_DIR, "docmap.pkl")
-        self.index: dict[str, set] = {}
-        self.docmap: dict[int, dict] = {}
 
     def __add_documents(self, doc_id, text):
         text_tokenized = preprocess_text(text)
         for token in text_tokenized:
-            if token not in self.index:
-                self.index[token] = set()    
             self.index[token].add(doc_id)
 
     def get_documents(self, term: str) -> list[int]:
@@ -156,3 +155,4 @@ class InvertedIndex:
         except Exception as ex:
             smart_print(f"Error: Movies Index Data Loading failed.\nInternal Error: {ex}\n{traceback.format_exc()}")
             return False
+        
