@@ -1,6 +1,6 @@
 from .search_utils import DEFAULT_SEARCH_LIMIT, CACHE_DIR, smart_print, load_movies, load_stopwords
 from nltk.stem import PorterStemmer
-from collections import defaultdict
+from collections import defaultdict, Counter
 import string
 import pickle
 import os
@@ -51,6 +51,13 @@ def search_command(query: str, limit: int = DEFAULT_SEARCH_LIMIT) -> list[dict]:
 
     return results
 
+def tf_commmand(doc_id: int, term: str) -> int:
+    movies_idx = InvertedIndex()
+    if movies_idx.load() == False:
+        return 0
+
+    return movies_idx.get_tf(doc_id, term)
+
 def build_command(verbose=False):
     
     global _verbose
@@ -90,11 +97,15 @@ class InvertedIndex:
     def __init__(self) -> None:
         self.index = defaultdict(set)
         self.docmap: dict[int, dict] = {}
+        self.term_frequency = defaultdict(Counter)
         self.index_path = os.path.join(CACHE_DIR, "index.pkl")
         self.docmap_path = os.path.join(CACHE_DIR, "docmap.pkl")
+        self.term_frequencies_path = os.path.join(CACHE_DIR, "term_frequencies.pkl")
 
     def __add_documents(self, doc_id, text):
         text_tokenized = preprocess_text(text)
+
+        self.term_frequency[doc_id].update(text_tokenized)
         for token in set(text_tokenized):
             self.index[token].add(doc_id)
 
@@ -102,6 +113,13 @@ class InvertedIndex:
         doc_ids = self.index.get(term, set())
         return sorted(list(doc_ids))
     
+    def get_tf(self, doc_id: int, term: str) -> int:
+        tokens = tokenize_text(term)
+        if len(tokens) != 1:
+            raise ValueError("term must be a single token")
+        token = tokens[0]
+        return self.term_frequency[doc_id][token]
+
     def build(self) -> bool:
         try:
             smart_print("Processing movies index Data...", _verbose)
@@ -129,6 +147,9 @@ class InvertedIndex:
             with open(self.docmap_path, 'wb') as file:
                 pickle.dump(self.docmap, file)
 
+            with open(self.term_frequencies_path, 'wb') as file:
+                pickle.dump(self.term_frequency, file)
+
             smart_print("Movies Index-Data saved successfully in caching folder.", _verbose)
             
             return True
@@ -147,6 +168,10 @@ class InvertedIndex:
             if not os.path.exists(self.index_path) : raise Exception(f"Could not load 'docmap.pkl' file.\nThe file path: {self.docmap_path} does not exist.")
             with open(self.docmap_path, "rb") as file:
                 self.docmap = pickle.load(file=file)
+
+            if not os.path.exists(self.term_frequencies_path) : raise Exception(f"Could not load 'term_frequencies.pkl' file.\nThe file path: {self.term_frequencies_path} does not exist.")
+            with open(self.term_frequencies_path, "rb") as file:
+                self.term_frequency = pickle.load(file=file)
 
             smart_print("Movies-Indexes loaded successfully!", _verbose)
             return True

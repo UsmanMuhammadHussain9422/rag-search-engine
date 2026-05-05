@@ -1,6 +1,6 @@
 import argparse
 from lib.search_utils import DEFAULT_SEARCH_LIMIT
-from lib.keyword_search import search_command, build_command
+from lib.keyword_search import search_command, tf_commmand, build_command
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Keyword Search CLI")
@@ -10,7 +10,11 @@ def main() -> None:
     search_parser.add_argument("query", type=str, help="Search query")
     search_parser.add_argument("limit", type=int, nargs='?', default=DEFAULT_SEARCH_LIMIT, help="limit results")
 
-    search_parser = subparsers.add_parser("build", help="Build movies inverted index and save it to disk")
+    tf_parser = subparsers.add_parser("tf", help="Gets the term frequency for a given document ID and term")
+    tf_parser.add_argument("doc_id", type=int, help="Document ID")
+    tf_parser.add_argument("term", type=str, help="Term to get frequency for")
+
+    build_parser = subparsers.add_parser("build", help="Build movies inverted index and save it to disk")
 
     args = parser.parse_args()
 
@@ -20,6 +24,10 @@ def main() -> None:
             results = search_command(args.query, args.limit)
             for i, res in enumerate(results, 1):
                 print(f'{i}. {res["title"]}')
+        case "tf":
+            print(f"Accessing TF for Doc_ID: {args.doc_id}")
+            term_frequency = (tf_commmand(args.doc_id, args.term))
+            print(f"Term frequency of '{args.term}' in document '{args.doc_id}': {term_frequency}")
         case "build":
             print("Building inverted index...")
             build_command()
