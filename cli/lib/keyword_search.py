@@ -84,8 +84,7 @@ def remove_stopwords(words: list[str]) -> list[str]:
 
 def stemmer(texts: list[str]) -> list[str]:
     stemmer = PorterStemmer()
-    unique_texts = set(texts)
-    return [stemmer.stem(text) for text in unique_texts]
+    return [stemmer.stem(text) for text in texts]
 
 class InvertedIndex:
     def __init__(self) -> None:
