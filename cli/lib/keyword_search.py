@@ -3,6 +3,7 @@ from nltk.stem import PorterStemmer
 from collections import defaultdict, Counter
 import string
 import pickle
+import math
 import os
 import traceback
 
@@ -55,6 +56,11 @@ def tf_commmand(doc_id: int, term: str) -> int:
     movies_idx = InvertedIndex()
     movies_idx.load()
     return movies_idx.get_tf(doc_id, term)
+
+def idf_command(term: str) -> float:
+    movies_idx = InvertedIndex()
+    movies_idx.load()
+    return movies_idx.get_idf(term)
 
 def build_command(verbose=False):
     
@@ -117,6 +123,15 @@ class InvertedIndex:
             raise ValueError("term must be a single token")
         token = tokens[0]
         return self.term_frequency[doc_id][token]
+
+    def get_idf(self, term: str) -> float:
+        tokens = preprocess_text(term)
+        if len(tokens) != 1:
+            raise ValueError("term must be a single token")
+        token = tokens[0]
+        doc_count = len(self.docmap)
+        term_doc_count = len(self.index[token])
+        return math.log((doc_count + 1) / (term_doc_count + 1))
 
     def build(self) -> bool:
         try:
