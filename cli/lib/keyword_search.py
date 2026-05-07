@@ -7,6 +7,7 @@ import os
 import traceback
 
 _verbose = False
+
 @DeprecationWarning
 def search_command_old(query: str, limit: int = DEFAULT_SEARCH_LIMIT) -> list[dict]:
     """
@@ -33,8 +34,7 @@ def search_command_old(query: str, limit: int = DEFAULT_SEARCH_LIMIT) -> list[di
 
 def search_command(query: str, limit: int = DEFAULT_SEARCH_LIMIT) -> list[dict]:
     movies_idx = InvertedIndex()
-    if movies_idx.load() == False:
-        return []
+    movies_idx.load()
     
     query_tokens = preprocess_text(query)
     seen, results = set(), []
@@ -53,9 +53,7 @@ def search_command(query: str, limit: int = DEFAULT_SEARCH_LIMIT) -> list[dict]:
 
 def tf_commmand(doc_id: int, term: str) -> int:
     movies_idx = InvertedIndex()
-    if movies_idx.load() == False:
-        return 0
-
+    movies_idx.load()
     return movies_idx.get_tf(doc_id, term)
 
 def build_command(verbose=False):
@@ -132,8 +130,7 @@ class InvertedIndex:
             smart_print("Movies Index Data processesed successfully!", _verbose)
             return True
         except Exception as ex:
-            smart_print(f"Error: Movies Index built failed.\nInternal Error: {ex}\n{traceback.format_exc()}")
-            return False
+            raise Exception(f"Error: Movies Index built failed.\nInternal Error: {ex}\n{traceback.format_exc()}")
         
     def save(self) -> bool:
         smart_print("Saving Movies Indexes to HardDisk...", _verbose)
@@ -154,9 +151,8 @@ class InvertedIndex:
             
             return True
         except Exception as ex:
-            smart_print(f"Error: Movies Index Data Save failed.\nInternal Error: {ex}\n{traceback.format_exc()}")
-            return False
-    
+            raise Exception(f"Error: Movies Index Data Save failed.\nInternal Error: {ex}\n{traceback.format_exc()}")
+
     def load(self) -> bool:
         smart_print("Loading Movies Indexes from HardDisk...", _verbose)
 
@@ -176,6 +172,4 @@ class InvertedIndex:
             smart_print("Movies-Indexes loaded successfully!", _verbose)
             return True
         except Exception as ex:
-            smart_print(f"Error: Movies Index Data Loading failed.\nInternal Error: {ex}\n{traceback.format_exc()}")
-            return False
-        
+            raise Exception(f"Error: Movies Index Data Loading failed.\nInternal Error: {ex}\n{traceback.format_exc()}")
