@@ -62,6 +62,11 @@ def idf_command(term: str) -> float:
     movies_idx.load()
     return movies_idx.get_idf(term)
 
+def tfidf_command(doc_id:int, term: str) -> float:
+    movies_idx = InvertedIndex()
+    movies_idx.load()
+    return movies_idx.get_tfidf(doc_id, term)
+
 def build_command(verbose=False):
     
     global _verbose
@@ -132,6 +137,11 @@ class InvertedIndex:
         doc_count = len(self.docmap)
         term_doc_count = len(self.index[token])
         return math.log((doc_count + 1) / (term_doc_count + 1))
+
+    def get_tfidf(self, doc_id: int, term: str) -> float:
+        tf = self.get_tf(doc_id, term)
+        idf = self.get_idf(term)
+        return tf * idf
 
     def build(self) -> bool:
         try:

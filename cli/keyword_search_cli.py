@@ -1,6 +1,6 @@
 import argparse
 from lib.search_utils import DEFAULT_SEARCH_LIMIT
-from lib.keyword_search import search_command, tf_commmand, idf_command, build_command
+from lib.keyword_search import search_command, tf_commmand, idf_command, tfidf_command, build_command
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Keyword Search CLI")
@@ -16,6 +16,10 @@ def main() -> None:
 
     idf_parser = subparsers.add_parser("idf", help="Get inverse document frequency for a given term")
     idf_parser.add_argument("term", type=str, help="Term to get inverse document frequency for")
+
+    tfidf_parser = subparsers.add_parser("tfidf", help="Get TF-IDF for a given document ID and term")
+    tfidf_parser.add_argument("doc_id", type=int, help="Document ID")
+    tfidf_parser.add_argument("term", type=str, help="Term to get TF-IDF for")
 
     build_parser = subparsers.add_parser("build", help="Build movies inverted index and save it to disk")
 
@@ -34,6 +38,9 @@ def main() -> None:
         case "idf":
             idf = idf_command(args.term)
             print(f"Inverse document frequency of '{args.term}': {idf:.2f}")
+        case "tfidf":
+            tf_idf = tfidf_command(args.doc_id, args.term)
+            print(f"TF-IDF score of '{args.term}' in document '{args.doc_id}': {tf_idf:.2f}")
         case "build":
             print("Building inverted index...")
             build_command()
