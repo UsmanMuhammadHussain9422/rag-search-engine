@@ -1,6 +1,6 @@
 import argparse
 from lib.search_utils import DEFAULT_SEARCH_LIMIT
-from lib.keyword_search import search_command, tf_commmand, idf_command, tfidf_command, build_command
+from lib.keyword_search import search_command, tf_commmand, idf_command, tfidf_command, bm25_idf_command, build_command
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Keyword Search CLI")
@@ -21,6 +21,10 @@ def main() -> None:
     tfidf_parser.add_argument("doc_id", type=int, help="Document ID")
     tfidf_parser.add_argument("term", type=str, help="Term to get TF-IDF for")
 
+
+    bm25_idf_parser = subparsers.add_parser("bm25idf", help="Get BM25 IDF score for a given term")
+    bm25_idf_parser.add_argument("term", type=str, help="Term to get BM25 IDF score for")
+    
     build_parser = subparsers.add_parser("build", help="Build movies inverted index and save it to disk")
 
     args = parser.parse_args()
@@ -41,6 +45,9 @@ def main() -> None:
         case "tfidf":
             tf_idf = tfidf_command(args.doc_id, args.term)
             print(f"TF-IDF score of '{args.term}' in document '{args.doc_id}': {tf_idf:.2f}")
+        case "bm25idf":
+            bm25_idf = bm25_idf_command(args.term)
+            print(f"BM25 IDF score of '{args.term}': {bm25_idf:.2f}")
         case "build":
             print("Building inverted index...")
             build_command()

@@ -62,6 +62,11 @@ def idf_command(term: str) -> float:
     movies_idx.load()
     return movies_idx.get_idf(term)
 
+def bm25_idf_command(term: str) -> float:
+    movies_idx = InvertedIndex()
+    movies_idx.load()
+    return movies_idx.get_bm25_idf(term)
+
 def tfidf_command(doc_id:int, term: str) -> float:
     movies_idx = InvertedIndex()
     movies_idx.load()
@@ -142,6 +147,15 @@ class InvertedIndex:
         tf = self.get_tf(doc_id, term)
         idf = self.get_idf(term)
         return tf * idf
+
+    def get_bm25_idf(self, term: str) -> float:
+        tokens = preprocess_text(term)
+        if len(tokens) != 1:
+            raise ValueError("term must be a single token")
+        token = tokens[0]
+        N = len(self.docmap) # total number of documents in the collection
+        df = len(self.index[token]) # document frequency (how many documents contain this term)
+        return math.log((N - df + 0.5) / (df + 0.5) + 1)
 
     def build(self) -> bool:
         try:
