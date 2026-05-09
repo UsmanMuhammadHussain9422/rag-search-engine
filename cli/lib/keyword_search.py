@@ -1,4 +1,4 @@
-from .search_utils import DEFAULT_SEARCH_LIMIT, CACHE_DIR, smart_print, load_movies, load_stopwords
+from .search_utils import DEFAULT_SEARCH_LIMIT, BM25_K1, CACHE_DIR, smart_print, load_movies, load_stopwords
 from nltk.stem import PorterStemmer
 from collections import defaultdict, Counter
 import string
@@ -71,6 +71,11 @@ def tfidf_command(doc_id:int, term: str) -> float:
     movies_idx = InvertedIndex()
     movies_idx.load()
     return movies_idx.get_tfidf(doc_id, term)
+
+def bm25_tf_command(doc_id: int, term: str, k1: float = BM25_K1) -> float:
+    idx = InvertedIndex()
+    idx.load()
+    return idx.get_bm25_tf(doc_id, term, k1)
 
 def build_command(verbose=False):
     
@@ -156,6 +161,9 @@ class InvertedIndex:
         df = len(self.index[token]) # document frequency (how many documents contain this term)
         return math.log((N - df + 0.5) / (df + 0.5) + 1)
 
+    def get_bm25_tf(self, doc_id: int, term: str, k1: float = BM25_K1) -> float:
+        tf = self.get_tf(doc_id, term)
+        return (tf * (k1 + 1)) / (tf + k1)
     def build(self) -> bool:
         try:
             smart_print("Processing movies index Data...", _verbose)
