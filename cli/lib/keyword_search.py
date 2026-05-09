@@ -19,11 +19,11 @@ def search_command_old(query: str, limit: int = DEFAULT_SEARCH_LIMIT) -> list[di
     results = []
     
     # Preprocess query once (outside loop)
-    query_tokens = preprocess_text(query)
+    query_tokens = tokenize_text(query)
     
     for movie in movies:
         # Preprocess title once per movie
-        title_tokens = preprocess_text(movie["title"])
+        title_tokens = tokenize_text(movie["title"])
         
         # Check for intersection (any query token matches any title token as substring)
         if has_matching_token(query_tokens, title_tokens):
@@ -37,7 +37,7 @@ def search_command(query: str, limit: int = DEFAULT_SEARCH_LIMIT) -> list[dict]:
     movies_idx = InvertedIndex()
     movies_idx.load()
     
-    query_tokens = preprocess_text(query)
+    query_tokens = tokenize_text(query)
     seen, results = set(), []
     for query_token in query_tokens:
         matching_doc_ids = movies_idx.get_documents(query_token)
@@ -84,20 +84,19 @@ def build_command(verbose=False):
 def has_matching_token(query_tokens, title_tokens):
     return any(q_token in t_token for q_token in query_tokens for t_token in title_tokens)
 
-def preprocess_text(text: str) -> list[str]:
+def preprocess_text(text: str) -> str:
     """Preprocess text: remove punctuation, lowercase, tokenize."""
-    processed_text = remove_punctuation(text).lower()
-    return stemmer(
-            remove_stopwords(
-                tokenize_text(processed_text)
-        )
-    )
+    return remove_punctuation(text).lower()
 
 def remove_punctuation(text: str) -> str:
     return text.translate(str.maketrans('', '', string.punctuation))
 
 def tokenize_text(text: str) -> list[str]:
-    return text.split()
+    text = preprocess_text(text)
+    tokens = text.split()
+    filtered_words = remove_stopwords(tokens)
+    stemmed_words = stemmer(filtered_words)
+    return stemmed_words
 
 def remove_stopwords(words: list[str]) -> list[str]:
     stopwords = set(load_stopwords())  # Convert to set for fast lookup; cache if possible
@@ -117,7 +116,7 @@ class InvertedIndex:
         self.term_frequencies_path = os.path.join(CACHE_DIR, "term_frequencies.pkl")
 
     def __add_documents(self, doc_id, text):
-        text_tokenized = preprocess_text(text)
+        text_tokenized = tokenize_text(text)
 
         self.term_frequency[doc_id].update(text_tokenized)
         for token in set(text_tokenized):
@@ -135,7 +134,7 @@ class InvertedIndex:
         return self.term_frequency[doc_id][token]
 
     def get_idf(self, term: str) -> float:
-        tokens = preprocess_text(term)
+        tokens = tokenize_text(term)
         if len(tokens) != 1:
             raise ValueError("term must be a single token")
         token = tokens[0]
@@ -149,7 +148,7 @@ class InvertedIndex:
         return tf * idf
 
     def get_bm25_idf(self, term: str) -> float:
-        tokens = preprocess_text(term)
+        tokens = tokenize_text(term)
         if len(tokens) != 1:
             raise ValueError("term must be a single token")
         token = tokens[0]
