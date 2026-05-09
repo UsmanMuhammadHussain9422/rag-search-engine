@@ -1,5 +1,5 @@
 import argparse
-from lib.search_utils import DEFAULT_SEARCH_LIMIT, BM25_K1
+from lib.search_utils import DEFAULT_SEARCH_LIMIT, BM25_K1, BM25_B
 from lib.keyword_search import search_command, tf_commmand, idf_command, tfidf_command, bm25_idf_command, bm25_tf_command, build_command
 
 def main() -> None:
@@ -25,6 +25,7 @@ def main() -> None:
     bm25_tf_parser.add_argument("doc_id", type=int, help="Document ID")
     bm25_tf_parser.add_argument("term", type=str, help="Term to get BM25 TF score for")
     bm25_tf_parser.add_argument("k1", type=float, nargs='?', default=BM25_K1, help="Tunable BM25 K1 parameter")
+    bm25_tf_parser.add_argument("b", type=float, nargs='?', default=BM25_B, help="Tunable BM25 B parameter")
 
     bm25_idf_parser = subparsers.add_parser("bm25idf", help="Get BM25 IDF score for a given term")
     bm25_idf_parser.add_argument("term", type=str, help="Term to get BM25 IDF score for")
@@ -54,7 +55,7 @@ def main() -> None:
             print(f"BM25 IDF score of '{args.term}': {bm25_idf:.2f}")
         case "bm25tf":
             print(f"Accessing BM25-TF for Doc_ID: {args.doc_id}")
-            bm25tf = (bm25_tf_command(args.doc_id, args.term, args.k1))
+            bm25tf = (bm25_tf_command(args.doc_id, args.term, args.k1, args.b))
             print(f"BM25 TF score of '{args.term}' in document '{args.doc_id}': {bm25tf:.2f}")
         case "build":
             print("Building inverted index...")
