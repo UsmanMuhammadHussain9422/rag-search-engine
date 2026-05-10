@@ -1,4 +1,4 @@
-from .search_utils import DEFAULT_SEARCH_LIMIT, BM25_K1, BM25_B, CACHE_DIR, smart_print, load_movies, load_stopwords
+from .search_utils import DEFAULT_SEARCH_LIMIT, BM25_K1, BM25_B, CACHE_DIR, smart_print, load_movies, load_stopwords, format_search_result
 from nltk.stem import PorterStemmer
 from collections import defaultdict, Counter
 import string
@@ -51,6 +51,11 @@ def search_command(query: str, limit: int = DEFAULT_SEARCH_LIMIT) -> list[dict]:
                 return results
 
     return results
+
+def bm25_search_command(query: str, limit: int = DEFAULT_SEARCH_LIMIT) -> list[dict]:
+    movies_idx = InvertedIndex()
+    movies_idx.load()
+    return movies_idx.bm25_search(query, limit)
 
 def tf_commmand(doc_id: int, term: str) -> int:
     movies_idx = InvertedIndex()
@@ -140,7 +145,7 @@ class InvertedIndex:
                 return sum(lengths) / len(self.doc_lengths) if self.doc_lengths else 0.0
     
     def get_documents(self, term: str) -> list[int]:
-        doc_ids = self.index.get(term, set())
+        doc_ids = self.index[term]
         return sorted(list(doc_ids))
     
     def get_tf(self, doc_id: int, term: str) -> int:
@@ -185,6 +190,33 @@ class InvertedIndex:
         tf_component = (tf * (k1 + 1)) / (tf + k1 * length_norm)
 
         return tf_component
+
+    def get_bm25(self, doc_id: int, term: str):
+        bm25_tf = self.get_bm25_tf(doc_id, term)
+        bm25_idf = self.get_bm25_idf(term)
+        return bm25_tf * bm25_idf
+
+    def bm25_search(self, query: str, limit: int = DEFAULT_SEARCH_LIMIT) -> list[dict]:
+        query_tokens = tokenize_text(query)
+        docs_bm25_scores = defaultdict(float)
+        for query_token in query_tokens:
+            for doc_id in self.get_documents(query_token):
+                docs_bm25_scores[doc_id] += self.get_bm25(doc_id, query_token)
+
+        sorted_docs = sorted( docs_bm25_scores.items(), key=lambda item: item[1], reverse=True)
+
+        results = []
+        for doc_id, score in sorted_docs[:limit]:
+            doc = self.docmap[doc_id]
+            formatted_result = format_search_result(
+                doc_id=doc["id"],
+                title=doc["title"],
+                document=doc["description"],
+                score=score,
+            )
+            results.append(formatted_result)
+
+        return results
     
     def build(self) -> bool:
         try:

@@ -1,6 +1,6 @@
 import argparse
 from lib.search_utils import DEFAULT_SEARCH_LIMIT, BM25_K1, BM25_B
-from lib.keyword_search import search_command, tf_commmand, idf_command, tfidf_command, bm25_idf_command, bm25_tf_command, build_command
+from lib.keyword_search import search_command, bm25_search_command, tf_commmand, idf_command, tfidf_command, bm25_idf_command, bm25_tf_command, build_command
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Keyword Search CLI")
@@ -30,6 +30,12 @@ def main() -> None:
     bm25_idf_parser = subparsers.add_parser("bm25idf", help="Get BM25 IDF score for a given term")
     bm25_idf_parser.add_argument("term", type=str, help="Term to get BM25 IDF score for")
     
+    bm25search_parser = subparsers.add_parser("bm25search", help="Search movies using full BM25 scoring")
+    bm25search_parser.add_argument("query", type=str, help="Search query")
+    bm25search_parser.add_argument("--limit", "-l", type=int, default=DEFAULT_SEARCH_LIMIT, help="limit results")
+    bm25search_parser.add_argument("--description", "-d", type=bool, default=False, help="Show full movie descriptions")
+    
+
     build_parser = subparsers.add_parser("build", help="Build movies inverted index and save it to disk")
 
     args = parser.parse_args()
@@ -40,6 +46,13 @@ def main() -> None:
             results = search_command(args.query, args.limit)
             for i, res in enumerate(results, 1):
                 print(f'{i}. {res["title"]}')
+        case "bm25search":
+            print(f"Searching for: {args.query}")
+            results = bm25_search_command(args.query, args.limit)
+            for i, res in enumerate(results, 1):
+                print(f'{i}. ({res["id"]}){res["title"]} - Score: {res["score"]:.2f}')
+                if args.description:
+                    print(res["document"])
         case "tf":
             print(f"Accessing TF for Doc_ID: {args.doc_id}")
             term_frequency = (tf_commmand(args.doc_id, args.term))
