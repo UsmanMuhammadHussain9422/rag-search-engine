@@ -44,11 +44,17 @@ def main() -> None:
         case "search":
             print(f"Searching for: {args.query}")
             results = search_command(args.query, args.limit)
+            if len(results) == 0:
+                print(f"Sorry No Results Found for the Query: {args.query}")
+                return
             for i, res in enumerate(results, 1):
                 print(f'{i}. {res["title"]}')
         case "bm25search":
             print(f"Searching for: {args.query}")
             results = bm25_search_command(args.query, args.limit)
+            if len(results) == 0:
+                print(f"Sorry No Results Found for the Query: {args.query}")
+                return
             for i, res in enumerate(results, 1):
                 print(f'{i}. ({res["id"]}){res["title"]} - Score: {res["score"]:.2f}')
                 if args.description:
