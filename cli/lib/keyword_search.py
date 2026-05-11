@@ -60,27 +60,32 @@ def bm25_search_command(query: str, limit: int = DEFAULT_SEARCH_LIMIT) -> list[d
 def tf_commmand(doc_id: int, term: str) -> int:
     movies_idx = InvertedIndex()
     movies_idx.load()
-    return movies_idx.get_tf(doc_id, term)
+    token = _single_token(term)
+    return movies_idx.get_tf(doc_id, token)
 
 def idf_command(term: str) -> float:
     movies_idx = InvertedIndex()
     movies_idx.load()
-    return movies_idx.get_idf(term)
+    token = _single_token(term)
+    return movies_idx.get_idf(token)
 
 def bm25_idf_command(term: str) -> float:
     movies_idx = InvertedIndex()
     movies_idx.load()
-    return movies_idx.get_bm25_idf(term)
+    token = _single_token(term)
+    return movies_idx.get_bm25_idf(token)
 
-def tfidf_command(doc_id:int, term: str) -> float:
+def tfidf_command(doc_id: int, term: str) -> float:
     movies_idx = InvertedIndex()
     movies_idx.load()
-    return movies_idx.get_tfidf(doc_id, term)
+    token = _single_token(term)
+    return movies_idx.get_tfidf(doc_id, token)
 
 def bm25_tf_command(doc_id: int, term: str, k1: float = BM25_K1, b: float = BM25_B) -> float:
     idx = InvertedIndex()
     idx.load()
-    return idx.get_bm25_tf(doc_id, term, k1, b)
+    token = _single_token(term)
+    return idx.get_bm25_tf(doc_id, token, k1, b)
 
 def build_command(verbose=False):
     
@@ -108,6 +113,15 @@ def tokenize_text(text: str) -> list[str]:
     stemmed_words = stemmer(filtered_words)
     return stemmed_words
 
+def _single_token(term: str) -> str:
+    """Tokenize a CLI-supplied term and ensure exactly one usable token remains."""
+    tokens = tokenize_text(term)
+    if len(tokens) == 0:
+        raise ValueError(f"term '{term}' produced no tokens (likely a stopword)")
+    if len(tokens) > 1:
+        raise ValueError(f"term '{term}' must be a single token, got {len(tokens)}")
+    return tokens[0]
+
 def remove_stopwords(words: list[str]) -> list[str]:
     stopwords = set(load_stopwords())  # Convert to set for fast lookup; cache if possible
     return [word for word in words if word not in stopwords]
@@ -115,6 +129,9 @@ def remove_stopwords(words: list[str]) -> list[str]:
 def stemmer(texts: list[str]) -> list[str]:
     stemmer = PorterStemmer()
     return [stemmer.stem(text) for text in texts]
+
+def _bm25_scores_default() -> defaultdict[int, float]:
+    return defaultdict(float)
 
 class InvertedIndex:
     def __init__(self) -> None:
@@ -141,69 +158,47 @@ class InvertedIndex:
             self.index[token].add(doc_id)
 
     def __get_avg_doc_length(self) -> float:
-                lengths = self.doc_lengths.values()
-                return sum(lengths) / len(self.doc_lengths) if self.doc_lengths else 0.0
+            lengths = self.doc_lengths.values()
+            return sum(lengths) / len(self.doc_lengths) if self.doc_lengths else 0.0
     
     def get_documents(self, term: str) -> list[int]:
         doc_ids = self.index[term]
         return sorted(list(doc_ids))
     
-    def get_tf(self, doc_id: int, term: str) -> int:
-        tokens = tokenize_text(term)
-        if len(tokens) != 1:
-            raise ValueError("term must be a single token")
-        token = tokens[0]
+    def get_tf(self, doc_id: int, token: str) -> int:
         return self.term_frequencies[doc_id][token]
 
-    def get_idf(self, term: str) -> float:
-        tokens = tokenize_text(term)
-        if len(tokens) != 1:
-            raise ValueError("term must be a single token")
-        token = tokens[0]
+    def get_idf(self, token: str) -> float:
         doc_count = len(self.docmap)
         term_doc_count = len(self.index[token])
         return math.log((doc_count + 1) / (term_doc_count + 1))
 
-    def get_tfidf(self, doc_id: int, term: str) -> float:
-        tf = self.get_tf(doc_id, term)
-        idf = self.get_idf(term)
-        return tf * idf
+    def get_tfidf(self, doc_id: int, token: str) -> float:
+        return self.get_tf(doc_id, token) * self.get_idf(token)
 
-    def get_bm25_idf(self, term: str) -> float:
-        tokens = tokenize_text(term)
-        if len(tokens) != 1:
-            raise ValueError("term must be a single token")
-        token = tokens[0]
-        N = len(self.docmap) # total number of documents in the collection
-        df = len(self.index[token]) # document frequency (how many documents contain this term)
+    def get_bm25_idf(self, token: str) -> float:
+        N = len(self.docmap)
+        df = len(self.index[token])
         return math.log((N - df + 0.5) / (df + 0.5) + 1)
 
-    def get_bm25_tf(self, doc_id: int, term: str, k1: float = BM25_K1, b: float = BM25_B) -> float:
-        tf = self.get_tf(doc_id, term)
+    def get_bm25_tf(self, doc_id: int, token: str, k1: float = BM25_K1, b: float = BM25_B) -> float:
+        tf = self.get_tf(doc_id, token)
         doc_length = self.doc_lengths[doc_id]
-        avg_doc_length = self.avg_doc_length
-        
-        # Length normalization factor
-        length_norm = 1 - b + b * (doc_length / avg_doc_length)
+        length_norm = 1 - b + b * (doc_length / self.avg_doc_length)
+        return (tf * (k1 + 1)) / (tf + k1 * length_norm)
 
-        # Apply to term frequency
-        tf_component = (tf * (k1 + 1)) / (tf + k1 * length_norm)
-
-        return tf_component
-
-    def get_bm25(self, doc_id: int, term: str):
-        bm25_tf = self.get_bm25_tf(doc_id, term)
-        bm25_idf = self.get_bm25_idf(term)
-        return bm25_tf * bm25_idf
+    def get_bm25(self, doc_id: int, token: str) -> float:
+        return self.get_bm25_tf(doc_id, token) * self.get_bm25_idf(token)
 
     def bm25_search(self, query: str, limit: int = DEFAULT_SEARCH_LIMIT) -> list[dict]:
         query_tokens = tokenize_text(query)
         docs_bm25_scores = defaultdict(float)
+
         for query_token in query_tokens:
             for doc_id in self.get_documents(query_token):
                 docs_bm25_scores[doc_id] += self.get_bm25(doc_id, query_token)
 
-        sorted_docs = sorted( docs_bm25_scores.items(), key=lambda item: item[1], reverse=True)
+        sorted_docs = sorted(docs_bm25_scores.items(), key=lambda item: item[1], reverse=True)
 
         results = []
         for doc_id, score in sorted_docs[:limit]:
