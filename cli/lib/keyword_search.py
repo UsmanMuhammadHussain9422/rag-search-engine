@@ -130,9 +130,6 @@ def stemmer(texts: list[str]) -> list[str]:
     stemmer = PorterStemmer()
     return [stemmer.stem(text) for text in texts]
 
-def _bm25_scores_default() -> defaultdict[int, float]:
-    return defaultdict(float)
-
 class InvertedIndex:
     def __init__(self) -> None:
         self.index = defaultdict(set)
