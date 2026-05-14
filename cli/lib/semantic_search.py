@@ -9,5 +9,3 @@ def verify_model() -> None:
     print(f"Model loaded: {search_instance.model}")
     print(f"Max sequence length: {search_instance.model.max_seq_length}")
     return None 
-
-def add_vectors(vec1, vec2)
