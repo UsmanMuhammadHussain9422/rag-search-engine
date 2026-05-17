@@ -42,10 +42,11 @@ class SemanticSearch:
         self.document_map = defaultdict(dict)
         for doc in documents:
             self.document_map[doc["id"]] = doc
-
+        
         if os.path.exists(self.movie_embeddings_path):
             self.embeddings = np.load(self.movie_embeddings_path, allow_pickle=False)
-            if self.embeddings and len(self.embeddings) == len(self.documents):
+            if (self.embeddings is not None and self.documents is not None and 
+                len(self.embeddings) == len(self.documents)):
                 return self.embeddings
             
         return self.build_embeddings(documents)
