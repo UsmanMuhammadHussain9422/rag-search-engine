@@ -5,7 +5,8 @@ from typing import Sequence
 from sentence_transformers import SentenceTransformer
 import numpy as np
 from numpy.typing import NDArray
-from .search_utils import CACHE_DIR, DEFAULT_SEARCH_LIMIT, load_movies
+import math
+from .search_utils import CACHE_DIR, DEFAULT_SEARCH_LIMIT, DEFAULT_CHUNK_SIZE, load_movies
 
 class SemanticSearch:
     def __init__(self, model_name="all-MiniLM-L6-v2") -> None:
@@ -126,3 +127,28 @@ def search(query: str, limit: int):
     results = search_instance.search(query, limit)
     for index, res in enumerate(results):
         print(f"{index + 1}. {res['title']} (score: {res['score']})\n")
+
+def get_text_chunks(text: str, chunk_size: int = DEFAULT_CHUNK_SIZE) -> list[str]:
+    if chunk_size < 1:
+        raise ValueError("chunk_size must be at least 1.")
+    words = text.split()
+    chunks = []
+
+    for i in range(1, math.ceil(len(words)/chunk_size) + 1):
+        chunks.append(' '.join(words[chunk_size*(i-1):chunk_size*i]))
+    
+    return chunks
+
+
+def chunk_text(text: str, chunk_size: int = DEFAULT_CHUNK_SIZE) -> None:
+    """
+    Splits the input text into fixed-size chunks and prints each chunk.
+
+    Args:
+        text (str): The text to be chunked.
+        chunk_size (int): The number of words per chunk.
+    """
+    chunks = get_text_chunks(text, chunk_size)
+    print(f"Chunking {len(text)} characters")
+    for i, chunk in enumerate(chunks):
+        print(f"{i + 1}. {chunk}")
