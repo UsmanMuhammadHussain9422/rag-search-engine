@@ -1,11 +1,9 @@
 from collections import defaultdict
-from operator import itemgetter
 import os
 from typing import Sequence
 from sentence_transformers import SentenceTransformer
 import numpy as np
 from numpy.typing import NDArray
-import math
 from .search_utils import CACHE_DIR, DEFAULT_SEARCH_LIMIT, DEFAULT_CHUNK_SIZE, DEFAULT_OVERLAP, load_movies
 
 class SemanticSearch:
@@ -131,17 +129,18 @@ def search(query: str, limit: int):
 def get_text_chunks(text: str, chunk_size: int = DEFAULT_CHUNK_SIZE, overlap: int = DEFAULT_OVERLAP) -> list[str]:
     if chunk_size < 1:
         raise ValueError("chunk_size must be at least 1.")
+    if overlap >= chunk_size:
+        raise ValueError("overlap must be smaller than chunk_size.")
     words = text.split()
-    chunks = []
+    if not words:
+        return []
 
-    for i in range(1, math.ceil(len(words)/chunk_size) + 1):
-        if i == 1:
-            chunks.append(' '.join(words[chunk_size*(i-1):chunk_size*i]))
-        else:
-            chunks.append(' '.join(words[(chunk_size*(i-1)) - overlap:(chunk_size*i) - overlap]))
+    step = chunk_size - overlap
+    chunks = []
+    for start in range(0, len(words), step):
+        chunks.append(" ".join(words[start:start + chunk_size]))
 
     return chunks
-
 
 def chunk_text(text: str, chunk_size: int = DEFAULT_CHUNK_SIZE, overlap: int = DEFAULT_OVERLAP) -> None:
     """
