@@ -135,10 +135,15 @@ def get_text_chunks(text: str, chunk_size: int = DEFAULT_CHUNK_SIZE, overlap: in
     if not words:
         return []
 
+    return create_text_chunks(chunk_size, overlap, words)
+
+def create_text_chunks(chunk_size: int, overlap: int, text_strings: list[str]):
     step = chunk_size - overlap
     chunks = []
-    for start in range(0, len(words), step):
-        chunks.append(" ".join(words[start:start + chunk_size]))
+    
+    for start in range(0, len(text_strings), step):
+        if (len(text_strings) != 1) and (start == (len(text_strings) - 1)): break
+        chunks.append(" ".join(text_strings[start:start + chunk_size]))
 
     return chunks
 
