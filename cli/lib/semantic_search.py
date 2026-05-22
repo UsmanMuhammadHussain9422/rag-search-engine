@@ -4,7 +4,8 @@ from typing import Sequence
 from sentence_transformers import SentenceTransformer
 import numpy as np
 from numpy.typing import NDArray
-from .search_utils import CACHE_DIR, DEFAULT_SEARCH_LIMIT, DEFAULT_CHUNK_SIZE, DEFAULT_OVERLAP, load_movies
+import re
+from .search_utils import CACHE_DIR, DEFAULT_SEARCH_LIMIT, DEFAULT_CHUNK_SIZE, DEFAULT_SEMANTIC_CHUNK_SIZE, DEFAULT_OVERLAP, load_movies
 
 class SemanticSearch:
     def __init__(self, model_name="all-MiniLM-L6-v2") -> None:
@@ -159,3 +160,30 @@ def chunk_text(text: str, chunk_size: int = DEFAULT_CHUNK_SIZE, overlap: int = D
     print(f"Chunking {len(text)} characters")
     for i, chunk in enumerate(chunks):
         print(f"{i + 1}. {chunk}")
+
+def get_semantic_text_chunks(text: str, chunk_size: int = DEFAULT_SEMANTIC_CHUNK_SIZE, overlap: int = DEFAULT_OVERLAP) -> list[str]:
+    if chunk_size < 1:
+        raise ValueError("max_chunk_size must be at least 1.")
+    if overlap >= chunk_size:
+        raise ValueError("overlap must be smaller than max_chunk_size.")
+
+    sentence_regex = r"(?<=[.!?])\s+"
+    sentences = re.split(sentence_regex, text)
+    if not sentences:
+        return []
+
+    return create_text_chunks(chunk_size, overlap, sentences)
+
+def semantic_chunk_text(text: str, max_chunk_size: int = DEFAULT_SEMANTIC_CHUNK_SIZE, overlap: int = DEFAULT_OVERLAP) -> None:
+        """
+        Splits the input text into semantic(sentence) chunks and prints each chunk.
+
+        Args:
+            text (str): The text to be chunked.
+            max_chunk_size (int): The number of sentences per chunk.
+        """
+
+        chunks = get_semantic_text_chunks(text, max_chunk_size, overlap)
+        print(f"Semantically chunking {len(text)} characters")
+        for i, chunk in enumerate(chunks):
+            print(f"{i + 1}. {chunk}")
