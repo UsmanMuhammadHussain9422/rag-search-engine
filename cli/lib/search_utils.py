@@ -3,8 +3,6 @@ import os
 from typing import Any
 
 DEFAULT_SEARCH_LIMIT = 5
-DEFAULT_CHUNK_SIZE = 5
-DEFAULT_SEMANTIC_CHUNK_SIZE = 4
 DEFAULT_OVERLAP = 0
 SCORE_PRECISION = 3
 BM25_K1 = 1.5
@@ -15,6 +13,15 @@ DATA_PATH = os.path.join(PROJECT_ROOT, "data", "movies.json")
 STOPWORDS_PATH = os.path.join(PROJECT_ROOT, "data", "stopwords.txt")
 
 CACHE_DIR = os.path.join(PROJECT_ROOT, "cache")
+
+DEFAULT_CHUNK_SIZE = 200
+DEFAULT_CHUNK_OVERLAP = 1
+DEFAULT_SEMANTIC_CHUNK_SIZE = 4
+
+MOVIE_EMBEDDINGS_PATH = os.path.join(CACHE_DIR, "movie_embeddings.npy")
+MOVIE_EMBEDDINGS_NORMALISED_PATH = os.path.join(CACHE_DIR, "movie_embeddings_normalized.npy")
+CHUNK_EMBEDDINGS_PATH = os.path.join(CACHE_DIR, "chunk_embeddings.npy")
+CHUNK_METADATA_PATH = os.path.join(CACHE_DIR, "chunk_metadata.json")
 
 STOP_WORDS:list[str] = []
 

@@ -1,11 +1,25 @@
-from collections import defaultdict
+import json
 import os
-from typing import Sequence
-from sentence_transformers import SentenceTransformer
-import numpy as np
-from numpy.typing import NDArray
 import re
-from .search_utils import CACHE_DIR, DEFAULT_SEARCH_LIMIT, DEFAULT_CHUNK_SIZE, DEFAULT_SEMANTIC_CHUNK_SIZE, DEFAULT_OVERLAP, load_movies
+
+import numpy as np
+from sentence_transformers import SentenceTransformer
+
+from typing import Sequence
+from numpy.typing import NDArray
+from collections import defaultdict
+
+from .search_utils import (
+    CHUNK_EMBEDDINGS_PATH,
+    CHUNK_METADATA_PATH,
+    DEFAULT_CHUNK_OVERLAP,
+    DEFAULT_CHUNK_SIZE,
+    DEFAULT_SEARCH_LIMIT,
+    DEFAULT_SEMANTIC_CHUNK_SIZE,
+    MOVIE_EMBEDDINGS_PATH,
+    MOVIE_EMBEDDINGS_NORMALISED_PATH,
+    load_movies
+)
 
 class SemanticSearch:
     def __init__(self, model_name="all-MiniLM-L6-v2") -> None:
@@ -14,8 +28,6 @@ class SemanticSearch:
         self.embeddings: NDArray[np.floating] | None = None
         self.documents: Sequence[dict] | None = None
         self.document_map: dict[int, dict] = defaultdict(dict)
-
-        self.movie_embeddings_path = os.path.join(CACHE_DIR, "movie_embeddings_normalized.npy")
 
     def _normalize_embeddings(self, embeddings: NDArray[np.floating]) -> NDArray[np.floating]:
         norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
@@ -39,7 +51,7 @@ class SemanticSearch:
         raw_embeddings = self.model.encode(movie_strings, show_progress_bar=True, convert_to_numpy=True)
         self.embeddings = self._normalize_embeddings(raw_embeddings)
 
-        with open(self.movie_embeddings_path, 'wb') as file:
+        with open(MOVIE_EMBEDDINGS_NORMALISED_PATH, 'wb') as file:
             np.save(file, self.embeddings)
 
         return self.embeddings
@@ -50,8 +62,8 @@ class SemanticSearch:
         for doc in documents:
             self.document_map[doc["id"]] = doc
         
-        if os.path.exists(self.movie_embeddings_path):
-            self.embeddings = np.load(self.movie_embeddings_path, allow_pickle=False)
+        if os.path.exists(MOVIE_EMBEDDINGS_NORMALISED_PATH):
+            self.embeddings = np.load(MOVIE_EMBEDDINGS_NORMALISED_PATH, allow_pickle=False)
             if (self.embeddings is not None and self.documents is not None and 
                 len(self.embeddings) == len(self.documents)):
                 return self.embeddings
@@ -127,7 +139,7 @@ def search(query: str, limit: int):
     for index, res in enumerate(results):
         print(f"{index + 1}. {res['title']} (score: {res['score']})\n")
 
-def get_text_chunks(text: str, chunk_size: int = DEFAULT_CHUNK_SIZE, overlap: int = DEFAULT_OVERLAP) -> list[str]:
+def get_text_chunks(text: str, chunk_size: int = DEFAULT_CHUNK_SIZE, overlap: int = DEFAULT_CHUNK_OVERLAP) -> list[str]:
     if chunk_size < 1:
         raise ValueError("chunk_size must be at least 1.")
     if overlap >= chunk_size:
@@ -148,7 +160,7 @@ def create_text_chunks(chunk_size: int, overlap: int, text_strings: list[str]):
 
     return chunks
 
-def chunk_text(text: str, chunk_size: int = DEFAULT_CHUNK_SIZE, overlap: int = DEFAULT_OVERLAP) -> None:
+def chunk_text(text: str, chunk_size: int = DEFAULT_CHUNK_SIZE, overlap: int = DEFAULT_CHUNK_OVERLAP) -> None:
     """
     Splits the input text into fixed-size chunks and prints each chunk.
 
@@ -161,7 +173,7 @@ def chunk_text(text: str, chunk_size: int = DEFAULT_CHUNK_SIZE, overlap: int = D
     for i, chunk in enumerate(chunks):
         print(f"{i + 1}. {chunk}")
 
-def get_semantic_text_chunks(text: str, chunk_size: int = DEFAULT_SEMANTIC_CHUNK_SIZE, overlap: int = DEFAULT_OVERLAP) -> list[str]:
+def get_semantic_text_chunks(text: str, chunk_size: int = DEFAULT_SEMANTIC_CHUNK_SIZE, overlap: int = DEFAULT_CHUNK_OVERLAP) -> list[str]:
     if chunk_size < 1:
         raise ValueError("max_chunk_size must be at least 1.")
     if overlap >= chunk_size:
@@ -174,7 +186,7 @@ def get_semantic_text_chunks(text: str, chunk_size: int = DEFAULT_SEMANTIC_CHUNK
 
     return create_text_chunks(chunk_size, overlap, sentences)
 
-def semantic_chunk_text(text: str, max_chunk_size: int = DEFAULT_SEMANTIC_CHUNK_SIZE, overlap: int = DEFAULT_OVERLAP) -> None:
+def semantic_chunk_text(text: str, max_chunk_size: int = DEFAULT_SEMANTIC_CHUNK_SIZE, overlap: int = DEFAULT_CHUNK_OVERLAP) -> None:
         """
         Splits the input text into semantic(sentence) chunks and prints each chunk.
 
