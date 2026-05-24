@@ -105,6 +105,42 @@ class SemanticSearch:
             results.append({"score": float(scores[idx]), "title": doc["title"], "description": doc["description"]})
         return results
 
+def verify_model() -> None:
+    search_instance = SemanticSearch()
+    print(f"Model loaded: {search_instance.model}")
+    print(f"Max sequence length: {search_instance.model.max_seq_length}")
+    return None 
+
+def embed_text(text: str):
+    sentence_Search = SemanticSearch()
+    embedding = sentence_Search.generate_embedding(text)
+    print(f"Text: {text}")
+    print(f"First 3 dimensions: {embedding[:3]}")
+    print(f"Dimensions: {embedding.shape[0]}")
+
+def verify_embeddings():
+    documents: list[dict] = load_movies()
+    search_instance = SemanticSearch()
+    embeddings = search_instance.load_or_create_embeddings(documents)
+    print(f"Number of docs:   {len(documents)}")
+    print(f"Embeddings shape: {embeddings.shape[0]} vectors in {embeddings.shape[1]} dimensions")
+
+def embed_query_text(query:str):
+    search_instance = SemanticSearch()
+    embedding = search_instance.generate_embedding(query)
+    print(f"Query: {query}")
+    print(f"First 3 dimensions: {embedding[:3]}")
+    print(f"Shape: {embedding.shape}")
+
+def search(query: str, limit: int):
+    documents = load_movies()
+    search_instance = SemanticSearch()
+    search_instance.load_or_create_embeddings(documents)
+    results = search_instance.search(query, limit)
+    for index, res in enumerate(results):
+        print(f"{index + 1}. {res['title']} (score: {res['score']})\n")
+
+
 class ChunkedSemanticSearch(SemanticSearch):
     def __init__(self, model_name: str = "all-MiniLM-L6-v2") -> None:
         super().__init__(model_name)
@@ -160,41 +196,6 @@ class ChunkedSemanticSearch(SemanticSearch):
                 return self.chunk_embeddings
             
         return self.build_chunk_embeddings(documents)
-
-def verify_model() -> None:
-    search_instance = SemanticSearch()
-    print(f"Model loaded: {search_instance.model}")
-    print(f"Max sequence length: {search_instance.model.max_seq_length}")
-    return None 
-
-def embed_text(text: str):
-    sentence_Search = SemanticSearch()
-    embedding = sentence_Search.generate_embedding(text)
-    print(f"Text: {text}")
-    print(f"First 3 dimensions: {embedding[:3]}")
-    print(f"Dimensions: {embedding.shape[0]}")
-
-def verify_embeddings():
-    documents: list[dict] = load_movies()
-    search_instance = SemanticSearch()
-    embeddings = search_instance.load_or_create_embeddings(documents)
-    print(f"Number of docs:   {len(documents)}")
-    print(f"Embeddings shape: {embeddings.shape[0]} vectors in {embeddings.shape[1]} dimensions")
-
-def embed_query_text(query:str):
-    search_instance = SemanticSearch()
-    embedding = search_instance.generate_embedding(query)
-    print(f"Query: {query}")
-    print(f"First 3 dimensions: {embedding[:3]}")
-    print(f"Shape: {embedding.shape}")
-
-def search(query: str, limit: int):
-    documents = load_movies()
-    search_instance = SemanticSearch()
-    search_instance.load_or_create_embeddings(documents)
-    results = search_instance.search(query, limit)
-    for index, res in enumerate(results):
-        print(f"{index + 1}. {res['title']} (score: {res['score']})\n")
 
 def get_text_chunks(text: str, chunk_size: int = DEFAULT_CHUNK_SIZE, overlap: int = DEFAULT_CHUNK_OVERLAP) -> list[str]:
     if chunk_size < 1:
