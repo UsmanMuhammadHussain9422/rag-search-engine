@@ -14,12 +14,12 @@ STOPWORDS_PATH = os.path.join(PROJECT_ROOT, "data", "stopwords.txt")
 
 CACHE_DIR = os.path.join(PROJECT_ROOT, "cache")
 
+DOCUMENT_PREVIEW_LENGTH = 100
 DEFAULT_CHUNK_SIZE = 200
 DEFAULT_CHUNK_OVERLAP = 1
 DEFAULT_SEMANTIC_CHUNK_SIZE = 4
 
 MOVIE_EMBEDDINGS_PATH = os.path.join(CACHE_DIR, "movie_embeddings.npy")
-MOVIE_EMBEDDINGS_NORMALISED_PATH = os.path.join(CACHE_DIR, "movie_embeddings_normalized.npy")
 CHUNK_EMBEDDINGS_PATH = os.path.join(CACHE_DIR, "chunk_embeddings.npy")
 CHUNK_METADATA_PATH = os.path.join(CACHE_DIR, "chunk_metadata.json")
 
@@ -59,7 +59,7 @@ def format_search_result(doc_id: str, title: str, document: str, score: float, *
     return {
         "id": doc_id,
         "title": title,
-        "document": document,
+        "document": document[:DOCUMENT_PREVIEW_LENGTH],
         "score": round(score, SCORE_PRECISION),
-        "metadata": metadata if metadata else {},
+        "metadata": metadata or {}
     }

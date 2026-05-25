@@ -17,9 +17,10 @@ from .search_utils import (
     DEFAULT_CHUNK_SIZE,
     DEFAULT_SEARCH_LIMIT,
     DEFAULT_SEMANTIC_CHUNK_SIZE,
+    DOCUMENT_PREVIEW_LENGTH,
     MOVIE_EMBEDDINGS_PATH,
-    MOVIE_EMBEDDINGS_NORMALISED_PATH,
-    load_movies
+    load_movies,
+    format_search_result
 )
 
 class SemanticSearch:
@@ -49,10 +50,9 @@ class SemanticSearch:
             self.document_map[doc["id"]] = doc
             movie_strings.append(f"{doc['title']}: {doc['description']}")
 
-        raw_embeddings = self.model.encode(movie_strings, show_progress_bar=True, convert_to_numpy=True)
-        self.embeddings = self._normalize_embeddings(raw_embeddings)
+        self.embeddings = self.model.encode(movie_strings, show_progress_bar=True, convert_to_numpy=True)
 
-        with open(MOVIE_EMBEDDINGS_NORMALISED_PATH, 'wb') as file:
+        with open(MOVIE_EMBEDDINGS_PATH, 'wb') as file:
             np.save(file, self.embeddings)
 
         return self.embeddings
@@ -63,8 +63,8 @@ class SemanticSearch:
         for doc in documents:
             self.document_map[doc["id"]] = doc
         
-        if os.path.exists(MOVIE_EMBEDDINGS_NORMALISED_PATH):
-            self.embeddings = np.load(MOVIE_EMBEDDINGS_NORMALISED_PATH, allow_pickle=False)
+        if os.path.exists(MOVIE_EMBEDDINGS_PATH):
+            self.embeddings = np.load(MOVIE_EMBEDDINGS_PATH, allow_pickle=False)
             if (self.embeddings is not None and self.documents is not None and 
                 len(self.embeddings) == len(self.documents)):
                 return self.embeddings
@@ -79,30 +79,26 @@ class SemanticSearch:
         if self.embeddings is None:
             raise ValueError("Normalized embeddings are not loaded. Call load_or_create_embeddings first.")
 
-        # get normalized query vector
-        q = self.generate_embedding(query)
-        q_norm = np.linalg.norm(q)
-        if q_norm == 0:
-            q_norm = 1.0
-        q = q / q_norm
+        query_embedding = self.generate_embedding(query)
 
-        # vectorized dot-product against normalized embeddings -> cosine scores
-        scores = np.dot(self.embeddings, q)
+        similarities = []
+        for i, doc_embedding in enumerate(self.embeddings):
+            similarity = cosine_similarity(query_embedding, doc_embedding)
+            similarities.append((similarity, self.documents[i]))
 
-        # fast top-k indices (handles case limit >= n)
-        n = scores.shape[0]
-        k = min(max(1, int(limit)), n)
-        if k == n:
-            topk_idx = np.argsort(-scores)
-        else:
-            part = np.argpartition(-scores, k - 1)[:k]
-            topk_idx = part[np.argsort(-scores[part])]
+        similarities.sort(key=lambda x: x[0], reverse=True)
 
-        # build results
         results = []
-        for idx in topk_idx:
-            doc = self.documents[idx]
-            results.append({"score": float(scores[idx]), "title": doc["title"], "description": doc["description"]})
+        for score, doc in similarities[:limit]:
+            results.append(
+                format_search_result(
+                    doc_id=doc["id"],
+                    title=doc["title"],
+                    document=doc["description"][:DOCUMENT_PREVIEW_LENGTH],
+                    score=score,
+                )
+            )
+
         return results
 
 def verify_model() -> None:
@@ -132,14 +128,23 @@ def embed_query_text(query:str):
     print(f"First 3 dimensions: {embedding[:3]}")
     print(f"Shape: {embedding.shape}")
 
+def cosine_similarity(vec1, vec2):
+    dot_product = np.dot(vec1, vec2)
+    norm1 = np.linalg.norm(vec1)
+    norm2 = np.linalg.norm(vec2)
+
+    if norm1 == 0 or norm2 == 0:
+        return 0.0
+
+    return dot_product / (norm1 * norm2)
+
 def search(query: str, limit: int):
     documents = load_movies()
     search_instance = SemanticSearch()
     search_instance.load_or_create_embeddings(documents)
     results = search_instance.search(query, limit)
     for index, res in enumerate(results):
-        print(f"{index + 1}. {res['title']} (score: {res['score']})\n")
-
+        print(f"{index + 1}. {res['title']} (score: {res['score']:.4f})\n")
 
 class ChunkedSemanticSearch(SemanticSearch):
     def __init__(self, model_name: str = "all-MiniLM-L6-v2") -> None:
