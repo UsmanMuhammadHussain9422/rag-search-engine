@@ -5,6 +5,7 @@ import re
 import numpy as np
 from sentence_transformers import SentenceTransformer
 
+import string
 from typing import Sequence, cast
 from numpy.typing import NDArray
 from collections import defaultdict
@@ -294,9 +295,20 @@ def get_semantic_text_chunks(text: str, chunk_size: int = DEFAULT_SEMANTIC_CHUNK
         raise ValueError("overlap must be smaller than max_chunk_size.")
 
     sentence_regex = r"(?<=[.!?])\s+"
-    sentences = re.split(sentence_regex, text)
-    if not sentences:
-        return []
+    clean_text = text.strip()
+    if clean_text.isspace(): return []
+    sentences = re.split(sentence_regex, clean_text)
+
+    if not sentences: return []
+
+    if len(sentences) == 1 and sentences[0] and sentences[0][-1] not in ".!?":
+        return create_text_chunks(chunk_size, overlap, [clean_text])
+    
+    cleaned_sentences = []
+    for sentence in sentences:
+        clean_sentence = sentence.strip()
+        if not clean_sentence.isspace():
+            cleaned_sentences.append(clean_sentence)
 
     return create_text_chunks(chunk_size, overlap, sentences)
 
