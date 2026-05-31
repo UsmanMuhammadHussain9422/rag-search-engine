@@ -35,7 +35,13 @@ def normalise_scores(scores: list[float]) -> list[float]:
     if min_score == max_score:
         return [1.0]
     
-    return [((score - min_score) / (max_score - min_score)) for score in scores] 
+    return [(normalise_score(score, min_score, max_score)) for score in scores] 
+
+def normalise_score(score, min_score, max_score) -> float:
+    return (score - min_score) / (max_score - min_score)
+
+def hybrid_score(bm25_score: float, semantic_score: float, alpha: float = 0.5) -> float:
+    return alpha * bm25_score + (1 - alpha) * semantic_score
 
 def normalise_command(scores: list[float]) -> None:
     normalised_scores = normalise_scores(scores)
