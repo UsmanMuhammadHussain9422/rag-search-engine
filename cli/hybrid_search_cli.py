@@ -6,7 +6,7 @@ def main() -> None:
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
     
     normalize_parser = subparsers.add_parser("normalize", help="normalize embedded scores for bm25 and semantic scoring.")
-    normalize_parser.add_argument("scores", type=float, nargs='+', help="Search query")
+    normalize_parser.add_argument("scores", type=float, nargs='+', help="Embedded scores to normalise")
 
     args = parser.parse_args()
 
