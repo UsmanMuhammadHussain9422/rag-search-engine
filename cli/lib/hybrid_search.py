@@ -33,7 +33,7 @@ def normalise_scores(scores: list[float]) -> list[float]:
     max_score = max(scores)
 
     if min_score == max_score:
-        return [1.0]
+        return [1.0] * len(scores)
     
     return [(normalise_score(score, min_score, max_score)) for score in scores] 
 
