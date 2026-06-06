@@ -1,27 +1,27 @@
 import json
 import os
 from typing import Any
+from .custom_types import SearchResult
 
-DEFAULT_SEARCH_LIMIT = 5
-DEFAULT_OVERLAP = 0
-SCORE_PRECISION = 3
-BM25_K1 = 1.5
 BM25_B = 0.75
+BM25_K1 = 1.5
+DEFAULT_ALPHA = 0.5
+DEFAULT_CHUNK_OVERLAP = 1
+DEFAULT_CHUNK_SIZE = 200
+DEFAULT_OVERLAP = 0
+DEFAULT_SEARCH_LIMIT = 5
+DEFAULT_SEMANTIC_CHUNK_SIZE = 4
+DOCUMENT_PREVIEW_LENGTH = 100
+SCORE_PRECISION = 3
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+CACHE_DIR = os.path.join(PROJECT_ROOT, "cache")
 DATA_PATH = os.path.join(PROJECT_ROOT, "data", "movies.json")
 STOPWORDS_PATH = os.path.join(PROJECT_ROOT, "data", "stopwords.txt")
 
-CACHE_DIR = os.path.join(PROJECT_ROOT, "cache")
-
-DOCUMENT_PREVIEW_LENGTH = 100
-DEFAULT_CHUNK_SIZE = 200
-DEFAULT_CHUNK_OVERLAP = 1
-DEFAULT_SEMANTIC_CHUNK_SIZE = 4
-
-MOVIE_EMBEDDINGS_PATH = os.path.join(CACHE_DIR, "movie_embeddings.npy")
 CHUNK_EMBEDDINGS_PATH = os.path.join(CACHE_DIR, "chunk_embeddings.npy")
 CHUNK_METADATA_PATH = os.path.join(CACHE_DIR, "chunk_metadata.json")
+MOVIE_EMBEDDINGS_PATH = os.path.join(CACHE_DIR, "movie_embeddings.npy")
 
 STOP_WORDS:list[str] = []
 
@@ -43,7 +43,7 @@ def load_stopwords() -> list[str]:
             STOP_WORDS = f.read().splitlines()
     return STOP_WORDS
 
-def format_search_result(doc_id: str, title: str, document: str, score: float, **metadata: Any) -> dict[str, Any]:
+def format_search_result(doc_id: int, title: str, document: str, score: float, **metadata: Any) -> SearchResult:
     """Create standardized search result
 
     Args:
