@@ -1,12 +1,15 @@
-from heapq import nlargest
-import math
 import os
-from typing import Any
-from .custom_types import SearchResult
 
+from heapq import nlargest
+from dotenv import load_dotenv
+from typing import Any
+from google import genai
+
+from .custom_types import SearchResult
 from .keyword_search import InvertedIndex
 from .semantic_search import ChunkedSemanticSearch
 from .search_utils import DEFAULT_SEARCH_LIMIT, DEFAULT_ALPHA, DEFAULT_K, load_movies, format_search_result
+from .query_enhancer import Query_Enhancer
 
 class HybridSearch:
     def __init__(self, documents: list[dict]) -> None:
@@ -152,7 +155,14 @@ def weighted_search_command(query: str, k: int, limit: int = DEFAULT_SEARCH_LIMI
     for index, result in enumerate(results):
         print(f"{index + 1 }. {result['title']}\n\tHybrid Score: {result['score']:.3f}\n\tBM25: {result['metadata']['keyword_score']:.3f} Semantic: {result['metadata']['semantic_score']:.3f}\n\t{result['document']}\n".expandtabs(2))
 
-def rrf_search_command(query: str, k: int = DEFAULT_K, limit: int = DEFAULT_SEARCH_LIMIT) -> None:
+def rrf_search_command(original_query: str, k: int = DEFAULT_K, limit: int = DEFAULT_SEARCH_LIMIT, enhance_type: str = "") -> None:
+    query = original_query
+    if "spell" in enhance_type:
+        query_enhancer = Query_Enhancer()
+        enhanced_query = query_enhancer.enhance_query(query, "spell")
+        
+        print(f"Enhanced query ({enhance_type}): '{original_query}' -> '{enhanced_query}'\n")
+        query = enhanced_query
     documents = load_movies()
     hse = HybridSearch(documents)
     results = hse.rrf_search(query, k, limit)
