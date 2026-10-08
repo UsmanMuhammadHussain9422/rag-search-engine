@@ -157,7 +157,7 @@ def weighted_search_command(query: str, k: int, limit: int = DEFAULT_SEARCH_LIMI
 
 def rrf_search_command(original_query: str, k: int = DEFAULT_K, limit: int = DEFAULT_SEARCH_LIMIT, enhance_type: str = "") -> None:
     query = original_query
-    if "spell" in enhance_type:
+    if enhance_type and "spell" in enhance_type:
         query_enhancer = Query_Enhancer()
         enhanced_query = query_enhancer.enhance_query(query, "spell")
         
