@@ -1,34 +1,31 @@
-import os
 from typing import Optional
-
-from dotenv import load_dotenv
-from google import genai
+from openai.types.chat import ChatCompletionMessageParam
+from llm.openrouter import openrouter
 
 class Query_Enhancer:
     def __init__(self) -> None:
-        load_dotenv()
-        self.api_key = os.environ.get("GEMINI_API_KEY")
-        self.model= os.environ.get("GEMINI_MODEL")
-        self.spell_prompt = """Fix any spelling errors in the user-provided movie search query below.
+        self.spell_system_prompt: ChatCompletionMessageParam = {
+            "role": "system",
+            "content": """Fix any spelling errors in the user-provided movie search query below.
         Correct only clear, high-confidence typos. Do not rewrite, add, remove, or reorder words.
         Preserve punctuation and capitalization unless a change is required for a typo fix.
         If there are no spelling errors, or if you're unsure, output the original query unchanged.
         Output only the final query text, nothing else.
-        User query: "{query}"
         """
-        
-        if not self.api_key:
-            raise RuntimeError("GEMINI_API_KEY environment variable not set")
-        
-        self.client = genai.Client(api_key=self.api_key)
+        }
+        self.spell_user_prompt: ChatCompletionMessageParam = {
+            "role": "user",
+            "content": ""
+        }
 
     def spell_correct(self, query: str) -> str:
-        if not self.model:
-            raise RuntimeError("GEMINI_MODEL environment variable not set")
+        self.spell_user_prompt["content"] = query
+        corrected = ""
         
-        prompt = self.spell_prompt.format(query=query)
-        response = self.client.models.generate_content(model=self.model, contents=prompt)
-        corrected = (response.text or "").strip().strip('"')
+        OpenRouter = openrouter()        
+        response = OpenRouter.trigger_prompt([self.spell_system_prompt, self.spell_user_prompt])
+        if response is not None:
+            corrected = (response.choices[0].message.content or "").strip().strip('"')
         return corrected if corrected else query
 
 
