@@ -1,9 +1,7 @@
 import os
 
 from heapq import nlargest
-from dotenv import load_dotenv
-from typing import Any
-from google import genai
+from typing import Any, Literal
 
 from .custom_types import SearchResult
 from .keyword_search import InvertedIndex
@@ -155,14 +153,17 @@ def weighted_search_command(query: str, k: int, limit: int = DEFAULT_SEARCH_LIMI
     for index, result in enumerate(results):
         print(f"{index + 1 }. {result['title']}\n\tHybrid Score: {result['score']:.3f}\n\tBM25: {result['metadata']['keyword_score']:.3f} Semantic: {result['metadata']['semantic_score']:.3f}\n\t{result['document']}\n".expandtabs(2))
 
-def rrf_search_command(original_query: str, k: int = DEFAULT_K, limit: int = DEFAULT_SEARCH_LIMIT, enhance_type: str = "") -> None:
+def rrf_search_command(original_query: str, k: int = DEFAULT_K, limit: int = DEFAULT_SEARCH_LIMIT, enhance_type: Literal["spell", "rewrite"] | None = None) -> None:
     query = original_query
-    if enhance_type and "spell" in enhance_type:
+    if enhance_type:
         query_enhancer = Query_Enhancer()
-        enhanced_query = query_enhancer.enhance_query(query, "spell")
-        
-        print(f"Enhanced query ({enhance_type}): '{original_query}' -> '{enhanced_query}'\n")
-        query = enhanced_query
+        match enhance_type:
+            case "spell":
+                query = query_enhancer.enhance_query(query, "spell")
+            case "rewrite":
+                query = query_enhancer.enhance_query(query, "rewrite")
+        print(f"Enhanced query ({enhance_type}): '{original_query}' -> '{query}'\n")
+
     documents = load_movies()
     hse = HybridSearch(documents)
     results = hse.rrf_search(query, k, limit)
