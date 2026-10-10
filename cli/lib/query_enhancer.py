@@ -56,12 +56,34 @@ class Query_Enhancer:
             corrected = (response.choices[0].message.content or "").strip().strip('"')
         return corrected if corrected else query
 
+    def expand_query(self, query):
+        self.spell_system_prompt["content"] = """Expand the user-provided movie search query below with related terms.
+
+        Add synonyms and related concepts that might appear in movie descriptions.
+        Keep expansions relevant and focused.
+        Output only the additional terms; they will be appended to the original query.
+
+        Examples:
+        - "scary bear movie" -> "scary horror grizzly bear movie terrifying film"
+        - "action movie with bear" -> "action thriller bear chase fight adventure"
+        - "comedy with bear" -> "comedy funny bear humor lighthearted"
+        """
+        
+        self.spell_user_prompt["content"] = query
+        corrected = ""
+        
+        response = self.OpenRouter.trigger_prompt([self.spell_system_prompt, self.spell_user_prompt])
+        if response is not None:
+            corrected = (response.choices[0].message.content or "").strip().strip('"')
+        return corrected if corrected else query
+            
     def enhance_query(self, query: str, method: Optional[str] = None) -> str:
         match method:
             case "spell":
                 return self.spell_correct(query)
             case "rewrite":
                 return self.rewrite_query(query)
+            case "expand":
+                return self.expand_query(query)
             case _:
                 return query
-
