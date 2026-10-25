@@ -1,5 +1,5 @@
 import argparse
-from lib.hybrid_search import normalise_command, weighted_search_command, rrf_search_command
+from lib.hybrid_search import normalise_command, weighted_search_command, rrf_search_command, build_command
 from lib.search_utils import DEFAULT_SEARCH_LIMIT, DEFAULT_ALPHA, DEFAULT_K
 
 def main() -> None:
@@ -19,10 +19,13 @@ def main() -> None:
     rrf_search_parser.add_argument("--k", type=float, default=DEFAULT_K, help="Constant to controls how much more weight we give to higher-ranked results vs. lower-ranked ones")
     rrf_search_parser.add_argument("--limit", type=int, default=DEFAULT_SEARCH_LIMIT, help="Limit for the search results")
     rrf_search_parser.add_argument("--enhance", type=str, choices=["spell", "rewrite", "expand"], help="Enhances the user query.")
+    rrf_search_parser = subparsers.add_parser("build", help="Builds Files required for Search")
 
     args = parser.parse_args()
 
     match args.command:
+        case "build":
+            build_command()
         case "normalize":
             normalise_command(args.scores)
         case "weighted-search":

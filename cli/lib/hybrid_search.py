@@ -141,6 +141,10 @@ def hybrid_score(bm25_score: float, semantic_score: float, alpha: float = 0.5) -
 def rrf_score(rank: int, k: int = 60) -> float:
     return 1 / (k + rank)
 
+def build_command() -> None:
+    documents = load_movies()
+    hse = HybridSearch(documents)
+
 def normalise_command(scores: list[float]) -> None:
     normalised_scores = normalise_scores(scores)
     for score in normalised_scores:
