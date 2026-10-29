@@ -1,4 +1,5 @@
 from pathlib import Path
+import importlib.util
 import subprocess
 import sys
 import tempfile
@@ -23,6 +24,15 @@ class CommandCompatibilityTests(unittest.TestCase):
                     )
                     self.assertEqual(result.returncode, 0, result.stderr)
                     self.assertIn("usage:", result.stdout)
+
+    @unittest.skipUnless(importlib.util.find_spec("fastapi") is not None, "Install the api extra to run the API entry point")
+    def test_api_entry_point_help(self):
+        result = subprocess.run(
+            [sys.executable, str(PROJECT_ROOT / "api/search_server.py"), "--help"],
+            cwd=PROJECT_ROOT, capture_output=True, text=True, timeout=30,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("usage:", result.stdout)
 
     def test_package_and_original_cli_return_the_same_normalisation(self):
         outputs = []

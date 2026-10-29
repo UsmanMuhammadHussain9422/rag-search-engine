@@ -35,6 +35,8 @@ def main() -> None:
     rrf_search_parser.add_argument("--limit", type=int, default=DEFAULT_SEARCH_LIMIT, help="Limit for the search results")
     rrf_search_parser.add_argument("--enhance", type=str, choices=["spell", "rewrite", "expand"], help="Enhances the user query.")
     rrf_search_parser.add_argument("--rerank-method", type=str, default=None, choices=["individual"], help="Reranks the results of a user query.")
+    rrf_search_parser.add_argument("--server-url", help="Send the query to a running search server instead of loading local indexes")
+    rrf_search_parser.add_argument("--collection", default="movies", help="Collection on the search server (local mode supports movies)")
 
     rrf_search_parser = subparsers.add_parser("build", help="Builds Files required for Search")
 
@@ -48,7 +50,21 @@ def main() -> None:
         case "weighted-search":
             weighted_search_command(args.query, args.alpha, args.limit)
         case "rrf-search":
-            rrf_search_command(args.query, args.k, args.limit, args.enhance, args.rerank_method)
+            if args.server_url:
+                from api.search_client import SearchHTTPClient
+
+                try:
+                    with SearchHTTPClient(args.server_url) as client:
+                        rrf_search_command(
+                            args.query, args.k, args.limit, args.enhance, args.rerank_method,
+                            collection=args.collection, request_search=client.search,
+                        )
+                except (RuntimeError, ValueError) as exc:
+                    parser.exit(1, f"{exc}\n")
+            else:
+                if args.collection != "movies":
+                    parser.error("Local search currently supports only the movies collection")
+                rrf_search_command(args.query, args.k, args.limit, args.enhance, args.rerank_method)
         case _:
             parser.print_help()
 

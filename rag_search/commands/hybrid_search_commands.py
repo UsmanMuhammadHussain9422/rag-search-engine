@@ -1,5 +1,7 @@
 """Hybrid command implementations; argument parsing stays in cli/."""
 
+from collections.abc import Callable
+
 from rag_search.search_models import SearchResponse, SearchResult
 from rag_search.search.hybrid_search import normalise_scores
 from rag_search.config.prompt_profiles import EnhanceMethod
@@ -25,12 +27,23 @@ def rrf_search_command(
     limit: int = DEFAULT_SEARCH_LIMIT,
     enhance_type: EnhanceMethod | None = None,
     rerank_method=None,
+    *,
+    collection: str = "movies",
+    request_search: Callable[..., SearchResponse] | None = None,
 ) -> list[SearchResult]:
+    if request_search is not None:
+        response = request_search(
+            original_query, collection=collection, k=k, limit=limit,
+            enhance=enhance_type, rerank_method=rerank_method,
+        )
+        print_search_response(response, enhance_type)
+        return response.results
+
     from rag_search.app.bootstrap import build_runtime
 
     runtime = build_runtime()
     try:
-        response = runtime.get_collection("movies").search(
+        response = runtime.get_collection(collection).search(
             original_query, k=k, limit=limit, enhance=enhance_type, rerank_method=rerank_method
         )
         print_search_response(response, enhance_type)
