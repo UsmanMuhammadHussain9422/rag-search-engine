@@ -1,6 +1,25 @@
+"""Parse and dispatch keyword search CLI commands."""
+
+from pathlib import Path
+import sys
+
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 import argparse
-from lib.search_utils import DEFAULT_SEARCH_LIMIT, BM25_K1, BM25_B
-from lib.keyword_search import search_command, bm25_search_command, tf_commmand, idf_command, tfidf_command, bm25_idf_command, bm25_tf_command, build_command
+
+from rag_search.config.defaults import DEFAULT_SEARCH_LIMIT, BM25_K1, BM25_B
+from rag_search.commands.keyword_search_commands import (
+    search_command,
+    bm25_search_command,
+    tf_commmand,
+    idf_command,
+    bm25_idf_command,
+    tfidf_command,
+    bm25_tf_command,
+    build_command,
+)
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Keyword Search CLI")
@@ -29,12 +48,12 @@ def main() -> None:
 
     bm25_idf_parser = subparsers.add_parser("bm25idf", help="Get BM25 IDF score for a given term")
     bm25_idf_parser.add_argument("term", type=str, help="Term to get BM25 IDF score for")
-    
+
     bm25search_parser = subparsers.add_parser("bm25search", help="Search movies using full BM25 scoring")
     bm25search_parser.add_argument("query", type=str, help="Search query")
     bm25search_parser.add_argument("--limit", "-l", type=int, default=DEFAULT_SEARCH_LIMIT, help="limit results")
     bm25search_parser.add_argument("--description", "-d", type=bool, default=False, help="Show full movie descriptions")
-    
+
 
     build_parser = subparsers.add_parser("build", help="Build movies inverted index and save it to disk")
 
@@ -82,6 +101,7 @@ def main() -> None:
             print("Inverted index built successfully.")
         case _:
             parser.print_help()
+
 
 if __name__ == "__main__":
     main()

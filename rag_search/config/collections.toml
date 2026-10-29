@@ -1,0 +1,4 @@
+# Each loaded collection selects its own prompt profile.
+# The current application loads the movies collection; book readers come later.
+[collections.movies]
+prompt_profile = "movies"

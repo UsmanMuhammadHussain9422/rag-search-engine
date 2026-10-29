@@ -1,13 +1,34 @@
-#!/usr/bin/env python3
+"""Parse and dispatch semantic search CLI commands."""
+
+from pathlib import Path
+import sys
+
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import argparse
-from lib.semantic_search import search, verify_model, embed_text, verify_embeddings, embed_query_text, chunk_text, semantic_chunk_text, embed_chunks, search_chunked
-from lib.search_utils import DEFAULT_SEARCH_LIMIT, DEFAULT_CHUNK_SIZE, DEFAULT_OVERLAP, DEFAULT_CHUNK_OVERLAP, DEFAULT_SEMANTIC_CHUNK_SIZE
+
+from rag_search.config.defaults import (
+    DEFAULT_SEARCH_LIMIT, DEFAULT_CHUNK_SIZE, DEFAULT_OVERLAP,
+    DEFAULT_CHUNK_OVERLAP, DEFAULT_SEMANTIC_CHUNK_SIZE,
+)
+from rag_search.commands.semantic_search_commands import (
+    verify_model,
+    embed_text,
+    verify_embeddings,
+    embed_query_text,
+    search,
+    chunk_text,
+    semantic_chunk_text,
+    embed_chunks,
+    search_chunked,
+)
+
 
 def main():
     parser = argparse.ArgumentParser(description="Semantic Search CLI")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
-    
+
     subparsers.add_parser("verify", help="Verify that the embedding model is loaded")
 
     subparsers.add_parser("verify_embeddings", help="Verify embeddings for the movie dataset")
@@ -52,7 +73,7 @@ def main():
         case "embed_query":
             embed_query_text(args.query)
         case "chunk":
-            chunk_text(args.text, args.chunk_size, args.overlap)  
+            chunk_text(args.text, args.chunk_size, args.overlap)
         case "semantic_chunk":
             semantic_chunk_text(args.text, args.max_chunk_size, args.overlap)
         case "embed_chunks":
@@ -62,6 +83,7 @@ def main():
             search_chunked(args.query, args.limit)
         case _:
             parser.print_help()
+
 
 if __name__ == "__main__":
     main()
