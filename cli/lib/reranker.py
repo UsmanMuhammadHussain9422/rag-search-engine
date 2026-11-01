@@ -5,6 +5,7 @@ from typing import Literal, NotRequired
 
 from dotenv import load_dotenv
 from openai import OpenAI
+from sentence_transformers import CrossEncoder
 
 from .search_utils import SearchResult
 
@@ -12,6 +13,7 @@ from .search_utils import SearchResult
 class RerankedSearchResult(SearchResult, total=False):
     individual_score: NotRequired[int]
     batch_rank: NotRequired[int]
+    cross_encoding_rank: NotRequired[float]
 
 
 load_dotenv()
@@ -22,6 +24,8 @@ if not api_key:
 client = OpenAI(base_url="https://openrouter.ai/api/v1", api_key=api_key)
 model = "openrouter/free"
 
+cross_encoder_model = os.getenv("CROSS_ENCODER_MODEL")
+cross_encoder = CrossEncoder(cross_encoder_model)
 
 def llm_rerank_individual(
     query: str, documents: list[SearchResult], limit: int = 5
@@ -54,7 +58,6 @@ def llm_rerank_individual(
 
     scored_docs.sort(key=lambda x: x["individual_score"], reverse=True)
     return scored_docs[:limit]
-
 
 def llm_rerank_batch(
     query: str, documents: list[SearchResult], limit: int = 5
@@ -105,6 +108,21 @@ def llm_rerank_batch(
 
     return reranked[:limit]
 
+def rerank_cross_encoder(
+        query: str, documents: list[SearchResult], limit: int = 5
+        ) -> list[RerankedSearchResult]:
+
+    pairs: list[tuple[str, str]] = []
+    for doc in documents:
+        pairs.append((query, f"{doc.get('title', '')} - {doc.get('document', '')}"))
+    scores = cross_encoder.predict(pairs)
+
+    reranked: list[RerankedSearchResult] = []
+    for i, score in enumerate(scores):
+        reranked.append({**documents[i], "cross_encoding_rank": float(score)})
+    reranked.sort(key=lambda x: x["cross_encoding_rank"], reverse=True)
+
+    return reranked[:limit]
 
 def rerank(
     query: str,
@@ -116,5 +134,7 @@ def rerank(
         return llm_rerank_individual(query, documents, limit)
     if method == "batch":
         return llm_rerank_batch(query, documents, limit)
+    if method == "cross_encoder":
+        return rerank_cross_encoder(query, documents, limit)
     else:
         return documents[:limit]

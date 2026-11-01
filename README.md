@@ -17,3 +17,8 @@ This project explores the foundations of building a search system for a content-
 - `data/` is ignored by Git
 - `.venv/` is ignored by Git
 
+## Future Updates
+
+- [ ] **Evaluation:** Build a small golden test set and compare re-rank methods using metrics like MRR and nDCG
+- [ ] **Fine-tuning:** Fine-tune the cross-encoder on movie query-document pairs (including hard negatives) and check whether it beats the stock model
+- [ ] **Nice-to-haves:** Try a larger base cross-encoder (e.g. `ms-marco-MiniLM-L6-v2`) to compare speed and quality. Use LLM-as-judge to generate extra training labels (spot-check by hand). Cache cross-encoder scores for repeated queries.
