@@ -6,8 +6,9 @@ from typing import Any, Literal
 from .custom_types import SearchResult
 from .keyword_search import InvertedIndex
 from .semantic_search import ChunkedSemanticSearch
-from .search_utils import DEFAULT_SEARCH_LIMIT, DEFAULT_ALPHA, DEFAULT_K, load_movies, format_search_result
+from .search_utils import DEFAULT_SEARCH_LIMIT, DEFAULT_ALPHA, DEFAULT_K, SEARCH_MULTIPLIER, load_movies, format_search_result
 from .query_enhancer import Query_Enhancer
+from .reranker import RerankedSearchResult, rerank
 
 class HybridSearch:
     def __init__(self, documents: list[dict]) -> None:
@@ -157,15 +158,36 @@ def weighted_search_command(query: str, k: int, limit: int = DEFAULT_SEARCH_LIMI
     for index, result in enumerate(results):
         print(f"{index + 1 }. {result['title']}\n\tHybrid Score: {result['score']:.3f}\n\tBM25: {result['metadata']['keyword_score']:.3f} Semantic: {result['metadata']['semantic_score']:.3f}\n\t{result['document']}\n".expandtabs(2))
 
-def rrf_search_command(original_query: str, k: int = DEFAULT_K, limit: int = DEFAULT_SEARCH_LIMIT, enhance_type: Literal["spell", "rewrite", "expand"] | None = None) -> None:
+def rrf_search_command(original_query: str, k: int = DEFAULT_K, limit: int = DEFAULT_SEARCH_LIMIT, enhance_type: Literal["spell", "rewrite", "expand"] | None = None, rerank_method: Literal["individual"] | None = None,
+) -> None:
     query = original_query
+    enhance = False
+    enhanced_query = query
     if enhance_type:
+        enhance = True
         query_enhancer = Query_Enhancer()
         enhanced_query = query_enhancer.enhance_query(query, enhance_type)
         print(f"Enhanced query ({enhance_type}): '{original_query}' -> '{enhanced_query}'\n")
 
     documents = load_movies()
     hse = HybridSearch(documents)
-    results = hse.rrf_search(query, k, limit)
-    for index, result in enumerate(results):
-        print(f"{index + 1 }. {result['title']}\n\tRRF Score: {result['score']:.3f}\n\tBM25 Rank: {result['metadata']['keyword_rank']:.3f}, Semantic Rank: {result['metadata']['semantic_rank']:.3f}\n\t{result['document']}\n".expandtabs(2))
+    search_limit = limit * SEARCH_MULTIPLIER if rerank_method else limit
+    results = hse.rrf_search(query, k, search_limit)
+
+    reranked = False
+    if rerank_method:
+        results = rerank(query, results, method=rerank_method, limit=limit)
+        reranked = True
+
+    # for index, result in enumerate(results):
+    #     print(f"{index + 1 }. {result['title']}\n\tRRF Score: {result['score']:.3f}\n\tBM25 Rank: {result['metadata']['keyword_rank']:.3f}, Semantic Rank: {result['metadata']['semantic_rank']:.3f}\n\t{result['document']}\n".expandtabs(2))
+    if enhance:
+        print(f"Enhanced query ({enhance}): '{query}' -> '{enhanced_query}'\n")
+    for index, result in enumerate(results, start=1):
+        print(f"{index}. {result['title']}")
+        if "individual_score" in result:
+            print(f"  Re-rank Score: {result['individual_score']:.1f}")
+        metadata = result["metadata"]
+        print(f"  RRF Score: {result['score']:.6f}")
+        print(f"  BM25 Rank: {metadata.get('keyword_rank', 0)}, Semantic Rank: {metadata.get('semantic_rank', 0)}")
+        print(f"  {result['preview']}\n")

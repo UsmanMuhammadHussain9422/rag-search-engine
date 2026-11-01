@@ -9,5 +9,6 @@ class SearchResult(TypedDict):
     id: int
     title: str
     document: str
+    preview: str
     score: float
     metadata: dict[str, Any]

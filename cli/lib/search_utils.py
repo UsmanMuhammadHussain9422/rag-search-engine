@@ -7,6 +7,7 @@ BM25_B = 0.75
 BM25_K1 = 1.5
 DEFAULT_ALPHA = 0.5
 DEFAULT_K = 60
+SEARCH_MULTIPLIER = 5
 DEFAULT_CHUNK_OVERLAP = 1
 DEFAULT_CHUNK_SIZE = 200
 DEFAULT_OVERLAP = 0
@@ -60,7 +61,8 @@ def format_search_result(doc_id: int, title: str, document: str, score: float, *
     return {
         "id": doc_id,
         "title": title,
-        "document": document[:DOCUMENT_PREVIEW_LENGTH],
+        "document": document,
+        "preview": document[:DOCUMENT_PREVIEW_LENGTH],
         "score": round(score, SCORE_PRECISION),
         "metadata": metadata or {}
     }
