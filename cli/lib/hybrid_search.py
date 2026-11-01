@@ -158,7 +158,7 @@ def weighted_search_command(query: str, k: int, limit: int = DEFAULT_SEARCH_LIMI
     for index, result in enumerate(results):
         print(f"{index + 1 }. {result['title']}\n\tHybrid Score: {result['score']:.3f}\n\tBM25: {result['metadata']['keyword_score']:.3f} Semantic: {result['metadata']['semantic_score']:.3f}\n\t{result['document']}\n".expandtabs(2))
 
-def rrf_search_command(original_query: str, k: int = DEFAULT_K, limit: int = DEFAULT_SEARCH_LIMIT, enhance_type: Literal["spell", "rewrite", "expand"] | None = None, rerank_method: Literal["individual"] | None = None,
+def rrf_search_command(original_query: str, k: int = DEFAULT_K, limit: int = DEFAULT_SEARCH_LIMIT, enhance_type: Literal["spell", "rewrite", "expand"] | None = None, rerank_method: Literal["individual", "batch"] | None = None,
 ) -> None:
     query = original_query
     enhance = False
@@ -179,14 +179,28 @@ def rrf_search_command(original_query: str, k: int = DEFAULT_K, limit: int = DEF
         results = rerank(query, results, method=rerank_method, limit=limit)
         reranked = True
 
-    # for index, result in enumerate(results):
-    #     print(f"{index + 1 }. {result['title']}\n\tRRF Score: {result['score']:.3f}\n\tBM25 Rank: {result['metadata']['keyword_rank']:.3f}, Semantic Rank: {result['metadata']['semantic_rank']:.3f}\n\t{result['document']}\n".expandtabs(2))
+    if enhance:
+        print(
+            f"Enhanced query ({enhance_type}): '{query}' -> '{enhanced_query}'\n"
+        )
+
+    if reranked:
+        print(
+            f"Re-ranking top {len(results)} results using {rerank_method} method...\n"
+        )
+
+    print(
+        f"Reciprocal Rank Fusion Results for '{query}' (k={k}):"
+    )
+
     if enhance:
         print(f"Enhanced query ({enhance}): '{query}' -> '{enhanced_query}'\n")
     for index, result in enumerate(results, start=1):
         print(f"{index}. {result['title']}")
         if "individual_score" in result:
             print(f"  Re-rank Score: {result['individual_score']:.1f}")
+        if "batch_rank" in result:
+                print(f"   Re-rank Rank: {result.get('batch_rank', 0)}")
         metadata = result["metadata"]
         print(f"  RRF Score: {result['score']:.6f}")
         print(f"  BM25 Rank: {metadata.get('keyword_rank', 0)}, Semantic Rank: {metadata.get('semantic_rank', 0)}")
