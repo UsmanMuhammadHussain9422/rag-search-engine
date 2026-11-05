@@ -9,7 +9,6 @@ import string
 from typing import Sequence, cast
 from numpy.typing import NDArray
 from collections import defaultdict
-from .custom_types import ChunkMetadata
 
 from .search_utils import (
     CHUNK_EMBEDDINGS_PATH,
@@ -20,6 +19,7 @@ from .search_utils import (
     DEFAULT_SEMANTIC_CHUNK_SIZE,
     DOCUMENT_PREVIEW_LENGTH,
     MOVIE_EMBEDDINGS_PATH,
+    ChunkMetadata,
     load_movies,
     format_search_result
 )

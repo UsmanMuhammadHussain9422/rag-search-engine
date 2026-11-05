@@ -1,14 +1,5 @@
-from typing import TypedDict, Any
+from typing import Literal, TypedDict, Any
 
-class ChunkMetadata(TypedDict):
-    movie_idx: int
-    chunk_idx: int
-    total_chunks: int
+from lib.reranker import RerankedSearchResult
 
-class SearchResult(TypedDict):
-    id: int
-    title: str
-    document: str
-    preview: str
-    score: float
-    metadata: dict[str, Any]
+

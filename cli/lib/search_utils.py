@@ -1,7 +1,6 @@
 import json
 import os
-from typing import Any
-from .custom_types import SearchResult
+from typing import Any, TypedDict
 
 BM25_B = 0.75
 BM25_K1 = 1.5
@@ -26,6 +25,19 @@ CHUNK_METADATA_PATH = os.path.join(CACHE_DIR, "chunk_metadata.json")
 MOVIE_EMBEDDINGS_PATH = os.path.join(CACHE_DIR, "movie_embeddings.npy")
 
 STOP_WORDS:list[str] = []
+
+class ChunkMetadata(TypedDict):
+    movie_idx: int
+    chunk_idx: int
+    total_chunks: int
+
+class SearchResult(TypedDict):
+    id: int
+    title: str
+    document: str
+    preview: str
+    score: float
+    metadata: dict[str, Any]
 
 def smart_print(message, should_print=True):
     if should_print: 
