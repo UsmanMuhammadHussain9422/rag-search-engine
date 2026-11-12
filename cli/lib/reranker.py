@@ -22,7 +22,7 @@ if not api_key:
     raise RuntimeError("OPENROUTER_API_KEY environment variable not set")
 
 client = OpenAI(base_url="https://openrouter.ai/api/v1", api_key=api_key)
-model = "openrouter/free"
+model = os.getenv("LLM_MODEL", "openrouter/free")
 
 cross_encoder_model = os.getenv("CROSS_ENCODER_MODEL")
 cross_encoder = CrossEncoder(cross_encoder_model)
