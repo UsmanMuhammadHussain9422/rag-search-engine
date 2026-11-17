@@ -14,10 +14,12 @@ DEFAULT_SEARCH_LIMIT = 5
 DEFAULT_SEMANTIC_CHUNK_SIZE = 4
 DOCUMENT_PREVIEW_LENGTH = 100
 SCORE_PRECISION = 3
+PRECISION_K = 5
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 CACHE_DIR = os.path.join(PROJECT_ROOT, "cache")
 DATA_PATH = os.path.join(PROJECT_ROOT, "data", "movies.json")
+GOLDEN_DATASET_PATH = os.path.join(PROJECT_ROOT, "data", "golden_dataset.json")
 STOPWORDS_PATH = os.path.join(PROJECT_ROOT, "data", "stopwords.txt")
 
 CHUNK_EMBEDDINGS_PATH = os.path.join(CACHE_DIR, "chunk_embeddings.npy")
@@ -47,6 +49,11 @@ def load_movies() -> list[dict]:
     with open(DATA_PATH, "r") as f:
         data = json.load(f)
     return data["movies"]
+
+def load_golden_dataset() -> dict:
+    with open(GOLDEN_DATASET_PATH, "r") as f:
+            data = json.load(f)
+    return data
 
 def load_stopwords() -> list[str]:
 
