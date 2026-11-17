@@ -16,6 +16,15 @@ def precision_at_k(
             relevant_count += 1
     return relevant_count / k
 
+def recall_at_k(
+    retrieved_docs: list[str], relevant_docs: set[str], k: int = 5
+) -> float:
+    top_k = retrieved_docs[:k]
+    relevant_count = 0
+    for doc in top_k:
+        if doc in relevant_docs:
+            relevant_count += 1
+    return relevant_count / len(relevant_docs)
 
 def evaluate_command(limit: int = 5) -> dict:
     movies = load_movies()
@@ -27,6 +36,7 @@ def evaluate_command(limit: int = 5) -> dict:
     hybrid_search = HybridSearch(movies)
 
     total_precision = 0
+    total_recall = 0
     results_by_query = {}
     for test_case in test_cases:
         query = test_case["query"]
@@ -40,13 +50,18 @@ def evaluate_command(limit: int = 5) -> dict:
 
         precision = precision_at_k(retrieved_docs, relevant_docs, limit)
 
+        recall = recall_at_k(retrieved_docs, relevant_docs, limit)
+
+
         results_by_query[query] = {
             "precision": precision,
+            "recall": recall,
             "retrieved": retrieved_docs[:limit],
             "relevant": list(relevant_docs),
         }
 
         total_precision += precision
+        total_recall += recall
 
     return {
         "test_cases_count": len(test_cases),
