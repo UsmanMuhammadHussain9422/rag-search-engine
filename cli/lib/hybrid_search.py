@@ -177,6 +177,7 @@ def rrf_search_command(original_query: str, k: int = DEFAULT_K, limit: int = DEF
         query_enhancer = Query_Enhancer()
         enhanced_query = query_enhancer.enhance_query(query, enhance_type)
         if verbose: print(f"Enhanced query ({enhance_type}): '{original_query}' -> '{enhanced_query}'\n")
+        query = enhanced_query
 
     documents = load_movies()
     hse = HybridSearch(documents)
