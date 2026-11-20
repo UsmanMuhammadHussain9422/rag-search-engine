@@ -5,9 +5,23 @@ from typing import Any, Literal, TypedDict
 
 from .keyword_search import InvertedIndex
 from .semantic_search import ChunkedSemanticSearch
-from .search_utils import DEFAULT_SEARCH_LIMIT, DEFAULT_ALPHA, DEFAULT_K, SEARCH_MULTIPLIER, SearchResult, load_movies, format_search_result
+from .search_utils import (
+    BLUE,
+    GREEN,
+    RESET,
+    DEFAULT_ALPHA,
+    DEFAULT_K,
+    DEFAULT_SEARCH_LIMIT,
+    SEARCH_MULTIPLIER,
+    SearchResult,
+    format_search_result,
+    load_movies,
+    set_color,
+)
 from .query_enhancer import Query_Enhancer
 from .reranker import RerankedSearchResult, rerank
+
+DEBUG_MODE = os.getenv("DEBUG", "False").lower() == "true"
 
 class RRFSearchCommandResult(TypedDict):
     original_query: str
@@ -164,59 +178,100 @@ def weighted_search_command(query: str, k: int, limit: int = DEFAULT_SEARCH_LIMI
     documents = load_movies()
     hse = HybridSearch(documents)
     results = hse.weighted_search(query, k, limit)
-    for index, result in enumerate(results):
-        print(f"{index + 1 }. {result['title']}\n\tHybrid Score: {result['score']:.3f}\n\tBM25: {result['metadata']['keyword_score']:.3f} Semantic: {result['metadata']['semantic_score']:.3f}\n\t{result['document']}\n".expandtabs(2))
+    for index, result in enumerate(results, start=1):
+        metadata = result["metadata"]
+        print(
+            f"{index}. {result['title']}\n"
+            f"  Hybrid Score: {result['score']:.3f}\n"
+            f"  BM25: {metadata['keyword_score']:.3f} "
+            f"Semantic: {metadata['semantic_score']:.3f}\n"
+            f"  {result['document']}\n"
+        )
 
-def rrf_search_command(original_query: str, k: int = DEFAULT_K, limit: int = DEFAULT_SEARCH_LIMIT, enhance_type: Literal["spell", "rewrite", "expand"] | None = None, rerank_method: Literal["individual", "batch"] | None = None, verbose = True
+
+def _print_rrf_results(
+    results: list[SearchResult] | list[RerankedSearchResult],
+    *,
+    heading: str,
+    color: str | None = None,
+) -> None:
+    try:
+        if color:
+            set_color(color)
+        print(f"{heading}\n")
+        if not results:
+            print("No results found.\n")
+        for index, result in enumerate(results, start=1):
+            metadata = result["metadata"]
+            print(f"{index}. {result['title']}")
+            if "individual_score" in result:
+                print(f"   Re-rank Score: {result['individual_score']:.1f}")
+            if "batch_rank" in result:
+                print(f"   Re-rank Rank: {result['batch_rank']}")
+            if "cross_encoding_rank" in result:
+                print(f"   Cross-encoder Score: {result['cross_encoding_rank']:.3f}")
+            print(f"   RRF Score: {result['score']:.6f}")
+            print(
+                f"   BM25 Rank: {metadata.get('keyword_rank', 0)}, "
+                f"Semantic Rank: {metadata.get('semantic_rank', 0)}"
+            )
+            print(f"   {result['preview']}\n")
+    finally:
+        if color:
+            set_color(RESET)
+
+
+def rrf_search_command(
+    original_query: str,
+    k: int = DEFAULT_K,
+    limit: int = DEFAULT_SEARCH_LIMIT,
+    enhance_type: Literal["spell", "rewrite", "expand"] | None = None,
+    rerank_method: Literal["individual", "batch", "cross_encoder"] | None = None,
+    verbose: bool = True,
 ) -> RRFSearchCommandResult:
+    # Enhance the query when an enhancement method is selected.
     query = original_query
-    enhance = False
     enhanced_query = query
     if enhance_type:
-        enhance = True
         query_enhancer = Query_Enhancer()
         enhanced_query = query_enhancer.enhance_query(query, enhance_type)
-        if verbose: print(f"Enhanced query ({enhance_type}): '{original_query}' -> '{enhanced_query}'\n")
         query = enhanced_query
+        if verbose:
+            print(
+                f"Enhanced query ({enhance_type}): "
+                f"'{original_query}' -> '{enhanced_query}'\n"
+            )
 
+    # Retrieve extra RRF candidates when reranking is requested.
     documents = load_movies()
     hse = HybridSearch(documents)
     search_limit = limit * SEARCH_MULTIPLIER if rerank_method else limit
     results = hse.rrf_search(query, k, search_limit)
 
-    reranked = False
+    # Show the candidates before reranking when debug output is enabled.
+    if verbose and DEBUG_MODE and rerank_method:
+        _print_rrf_results(
+            results,
+            heading=f"[Debug] RRF candidates before reranking ({len(results)} results):",
+            color=GREEN,
+        )
+
+    # Rerank the candidates and keep the requested number of results.
+    reranked = bool(rerank_method)
     if rerank_method:
+        if verbose:
+            print(f"Re-ranking {len(results)} candidates using {rerank_method}...\n")
         results = rerank(query, results, method=rerank_method, limit=limit)
-        reranked = True
 
-    if enhance:
-        if verbose: print(
-            f"Enhanced query ({enhance_type}): '{query}' -> '{enhanced_query}'\n"
+    # Display the final results with consistent scores, ranks, and spacing.
+    if verbose:
+        _print_rrf_results(
+            results,
+            heading=f"Reciprocal Rank Fusion Results for '{query}' (k={k}):",
+            color=BLUE if DEBUG_MODE else None,
         )
 
-    if reranked:
-        if verbose: print(
-            f"Re-ranking top {len(results)} results using {rerank_method} method...\n"
-        )
-
-    if verbose: print(
-        f"Reciprocal Rank Fusion Results for '{query}' (k={k}):"
-    )
-
-    if enhance:
-        if verbose: print(f"Enhanced query ({enhance}): '{query}' -> '{enhanced_query}'\n")
-    for index, result in enumerate(results, start=1):
-        if verbose: print(f"{index}. {result['title']}")
-        if "individual_score" in result:
-            if verbose: print(f"  Re-rank Score: {result['individual_score']:.1f}")
-        if "batch_rank" in result:
-                if verbose: print(f"   Re-rank Rank: {result.get('batch_rank', 0)}")
-        metadata = result["metadata"]
-        if verbose: 
-            print(f"  RRF Score: {result['score']:.6f}")
-            print(f"  BM25 Rank: {metadata.get('keyword_rank', 0)}, Semantic Rank: {metadata.get('semantic_rank', 0)}")
-            print(f"  {result['preview']}\n")
-
+    # Return the query details and results for programmatic callers.
     return {
         "original_query": original_query,
         "enhanced_query": enhanced_query,

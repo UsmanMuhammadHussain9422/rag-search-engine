@@ -1,6 +1,7 @@
 import json
 import os
 from typing import Any, TypedDict
+import sys
 
 BM25_B = 0.75
 BM25_K1 = 1.5
@@ -28,6 +29,10 @@ MOVIE_EMBEDDINGS_PATH = os.path.join(CACHE_DIR, "movie_embeddings.npy")
 
 STOP_WORDS:list[str] = []
 
+BLUE = "\033[94m"
+GREEN = "\033[92m"
+RESET = "\033[0m"
+
 class ChunkMetadata(TypedDict):
     movie_idx: int
     chunk_idx: int
@@ -40,6 +45,10 @@ class SearchResult(TypedDict):
     preview: str
     score: float
     metadata: dict[str, Any]
+
+def set_color(code: str) -> None:
+    sys.stdout.write(code)
+    sys.stdout.flush()
 
 def smart_print(message, should_print=True):
     if should_print: 
