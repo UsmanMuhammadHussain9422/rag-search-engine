@@ -224,24 +224,17 @@ def _print_rrf_results(
         if color:
             set_color(RESET)
 
-def format_rrf_results(
-    results: list[SearchResult] | list[RerankedSearchResult],
-) -> list[str]:
+def format_rrf_results(results: list[SearchResult]) -> list[str]:
     """Return one string per result with its full document, score, and ranks."""
     formatted_results: list[str] = []
-    for result in results:
-        metadata = result["metadata"]
+    for index, result in enumerate(results, 1):
         formatted_results.append(
-            f"Title: {result['title']}\n"
+            f"{index}. Title: {result['title']}\n"
             f"Document: {result['document']}\n"
-            f"Score: {result['score']}\n"
-            f"Metadata:\n"
-            f"  keyword_rank: {metadata.get('keyword_rank', 0)}\n"
-            f"  semantic_rank: {metadata.get('semantic_rank', 0)}"
         )
     return formatted_results
 
-def evaluate_llm(query: str, formatted_results: list)  -> list:
+def llm_evaluate_results(query: str, formatted_results: list)  -> list:
     OpenRouter = openrouter()
     prompt = f"""Rate how relevant each result is to this query on a 0-3 scale:
 
@@ -267,9 +260,14 @@ def evaluate_llm(query: str, formatted_results: list)  -> list:
         "content": ""
     }
     messages["content"] = prompt
-    result = OpenRouter.trigger_prompt(prompts=[messages])
-    parsed_scores = json.loads(result.choices[0].message.content)
-    return parsed_scores
+    response = OpenRouter.trigger_prompt(prompts=[messages])
+    parsed_scores = json.loads((response.choices[0].message.content or "").strip())
+    if len(parsed_scores) == len(formatted_results):
+        return parsed_scores
+
+    raise ValueError(
+        f"LLM response parsing error. Expected {len(formatted_results)} scores, got {len(parsed_scores)}. Response: {parsed_scores}"
+    )
 
 def rrf_search_command(
     original_query: str,
@@ -325,7 +323,7 @@ def rrf_search_command(
 
     if evaluate:
         formatted_results = format_rrf_results(results)
-        rated_scores = evaluate_llm(original_query, formatted_results)
+        rated_scores = llm_evaluate_results(original_query, formatted_results)
         print(f"- Query: {original_query}")
         for index, res in enumerate(results):
             print(f"{index + 1}. {res['title']}: {rated_scores[index]}/3")
