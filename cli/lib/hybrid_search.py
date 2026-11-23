@@ -1,4 +1,5 @@
 import os
+import json
 
 from heapq import nlargest
 from typing import Any, Literal, TypedDict
@@ -20,6 +21,9 @@ from .search_utils import (
 )
 from .query_enhancer import Query_Enhancer
 from .reranker import RerankedSearchResult, rerank
+
+from llm.openrouter import openrouter
+from openai.types.chat import ChatCompletionMessageParam
 
 DEBUG_MODE = os.getenv("DEBUG", "False").lower() == "true"
 
@@ -220,13 +224,61 @@ def _print_rrf_results(
         if color:
             set_color(RESET)
 
+def format_rrf_results(
+    results: list[SearchResult] | list[RerankedSearchResult],
+) -> list[str]:
+    """Return one string per result with its full document, score, and ranks."""
+    formatted_results: list[str] = []
+    for result in results:
+        metadata = result["metadata"]
+        formatted_results.append(
+            f"Title: {result['title']}\n"
+            f"Document: {result['document']}\n"
+            f"Score: {result['score']}\n"
+            f"Metadata:\n"
+            f"  keyword_rank: {metadata.get('keyword_rank', 0)}\n"
+            f"  semantic_rank: {metadata.get('semantic_rank', 0)}"
+        )
+    return formatted_results
+
+def evaluate_llm(query: str, formatted_results: list)  -> list:
+    OpenRouter = openrouter()
+    prompt = f"""Rate how relevant each result is to this query on a 0-3 scale:
+
+    Query: "{query}"
+
+    Results:
+    {chr(10).join(formatted_results)}
+
+    Scale:
+    - 3: Highly relevant
+    - 2: Relevant
+    - 1: Marginally relevant
+    - 0: Not relevant
+
+    Do NOT give any numbers other than 0, 1, 2, or 3.
+
+    Return ONLY the scores in the same order you were given the documents. Return a valid JSON list, nothing else. For example:
+
+    [2, 0, 3, 2, 0, 1]"""
+
+    messages: ChatCompletionMessageParam = {
+        "role": "user",
+        "content": ""
+    }
+    messages["content"] = prompt
+    result = OpenRouter.trigger_prompt(prompts=[messages])
+    parsed_scores = json.loads(result.choices[0].message.content)
+    return parsed_scores
 
 def rrf_search_command(
     original_query: str,
+    *,
     k: int = DEFAULT_K,
     limit: int = DEFAULT_SEARCH_LIMIT,
     enhance_type: Literal["spell", "rewrite", "expand"] | None = None,
     rerank_method: Literal["individual", "batch", "cross_encoder"] | None = None,
+    evaluate: bool = False,
     verbose: bool = True,
 ) -> RRFSearchCommandResult:
     # Enhance the query when an enhancement method is selected.
@@ -270,6 +322,13 @@ def rrf_search_command(
             heading=f"Reciprocal Rank Fusion Results for '{query}' (k={k}):",
             color=BLUE if DEBUG_MODE else None,
         )
+
+    if evaluate:
+        formatted_results = format_rrf_results(results)
+        rated_scores = evaluate_llm(original_query, formatted_results)
+        print(f"- Query: {original_query}")
+        for index, res in enumerate(results):
+            print(f"{index + 1}. {res['title']}: {rated_scores[index]}/3")
 
     # Return the query details and results for programmatic callers.
     return {
